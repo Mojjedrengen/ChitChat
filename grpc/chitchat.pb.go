@@ -187,7 +187,7 @@ func (x *Msg) GetError() string {
 
 type ConnectRespond struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	StatusCode    int32                  `protobuf:"varint,1,opt,name=StatusCode,proto3" json:"StatusCode,omitempty"`
+	StatusCode    *ChatRespond           `protobuf:"bytes,1,opt,name=StatusCode,proto3" json:"StatusCode,omitempty"`
 	Message       *Msg                   `protobuf:"bytes,2,opt,name=Message,proto3" json:"Message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -223,11 +223,11 @@ func (*ConnectRespond) Descriptor() ([]byte, []int) {
 	return file_grpc_chitchat_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ConnectRespond) GetStatusCode() int32 {
+func (x *ConnectRespond) GetStatusCode() *ChatRespond {
 	if x != nil {
 		return x.StatusCode
 	}
-	return 0
+	return nil
 }
 
 func (x *ConnectRespond) GetMessage() *Msg {
@@ -304,10 +304,10 @@ const file_grpc_chitchat_proto_rawDesc = "" +
 	"\x04User\x18\x01 \x01(\v2\x0e.chitchat.UserR\x04User\x12\x1a\n" +
 	"\bUnixTime\x18\x02 \x01(\x03R\bUnixTime\x12\x18\n" +
 	"\aMessage\x18\x03 \x01(\tR\aMessage\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"Y\n" +
-	"\x0eConnectRespond\x12\x1e\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"p\n" +
+	"\x0eConnectRespond\x125\n" +
 	"\n" +
-	"StatusCode\x18\x01 \x01(\x05R\n" +
+	"StatusCode\x18\x01 \x01(\v2\x15.chitchat.ChatRespondR\n" +
 	"StatusCode\x12'\n" +
 	"\aMessage\x18\x02 \x01(\v2\r.chitchat.MsgR\aMessage\"G\n" +
 	"\vChatRespond\x12\x1e\n" +
@@ -344,18 +344,19 @@ var file_grpc_chitchat_proto_goTypes = []any{
 var file_grpc_chitchat_proto_depIdxs = []int32{
 	0, // 0: chitchat.SimpleMessage.User:type_name -> chitchat.User
 	0, // 1: chitchat.Msg.User:type_name -> chitchat.User
-	2, // 2: chitchat.ConnectRespond.Message:type_name -> chitchat.Msg
-	1, // 3: chitchat.chat.Connect:input_type -> chitchat.SimpleMessage
-	1, // 4: chitchat.chat.OnGoingChat:input_type -> chitchat.SimpleMessage
-	1, // 5: chitchat.chat.Disconnect:input_type -> chitchat.SimpleMessage
-	3, // 6: chitchat.chat.Connect:output_type -> chitchat.ConnectRespond
-	4, // 7: chitchat.chat.OnGoingChat:output_type -> chitchat.ChatRespond
-	4, // 8: chitchat.chat.Disconnect:output_type -> chitchat.ChatRespond
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 2: chitchat.ConnectRespond.StatusCode:type_name -> chitchat.ChatRespond
+	2, // 3: chitchat.ConnectRespond.Message:type_name -> chitchat.Msg
+	1, // 4: chitchat.chat.Connect:input_type -> chitchat.SimpleMessage
+	1, // 5: chitchat.chat.OnGoingChat:input_type -> chitchat.SimpleMessage
+	1, // 6: chitchat.chat.Disconnect:input_type -> chitchat.SimpleMessage
+	3, // 7: chitchat.chat.Connect:output_type -> chitchat.ConnectRespond
+	4, // 8: chitchat.chat.OnGoingChat:output_type -> chitchat.ChatRespond
+	4, // 9: chitchat.chat.Disconnect:output_type -> chitchat.ChatRespond
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_grpc_chitchat_proto_init() }

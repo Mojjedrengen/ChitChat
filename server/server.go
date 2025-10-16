@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -25,8 +24,51 @@ type ChatServer struct {
 	LastMessageIndex           map[*pb.User]int
 }
 
-func (s *ChatServer) Connect(ctx context.Context, msg *pb.SimpleMessage) (*pb.ConnectRespond, error) {
-	return nil, errors.New("Not implemented")
+func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer) error {
+	user := msg.User
+	message := msg.Message
+
+	if message == "Connect" && user != nil {
+		connectRespond := pb.ConnectRespond{
+			StatusCode: &pb.ChatRespond{
+				StatusCode: 200,
+				Context:    "Connected",
+			},
+		}
+		stream.Send(&connectRespond)
+		s.mu.Lock()
+		s.LastMessageIndex[user] = 0
+		s.mu.Unlock()
+
+		for {
+
+			var lastMessageIndex int
+			for lastMessageIndex = s.LastMessageIndex[user]; lastMessageIndex < len(s.MessageHistory); lastMessageIndex++ {
+				respond := pb.ConnectRespond{
+					StatusCode: &pb.ChatRespond{
+						StatusCode: 100,
+						Context:    "Sending messages",
+					},
+					Message: s.MessageHistory[lastMessageIndex],
+				}
+				if err := stream.Send(&respond); err != nil {
+					return err
+				}
+			}
+			s.mu.Lock()
+			s.LastMessageIndex[user] = lastMessageIndex
+			s.mu.Unlock()
+
+		}
+	} else {
+		stream.Send(&pb.ConnectRespond{
+			StatusCode: &pb.ChatRespond{
+				StatusCode: 401,
+				Context:    "Use Valid connection",
+			},
+		})
+		return errors.New("Invalid Authentication")
+	}
 }
 
 func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
@@ -67,16 +109,5 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		if err := stream.Send(&respond); err != nil {
 			return err
 		}
-		/*
-			var lastMessageIndex int
-			for lastMessageIndex = s.LastMessageIndex[user]; lastMessageIndex <= len(s.MessageHistory)-1; lastMessageIndex++ {
-				if err := stream.Send(s.MessageHistory[lastMessageIndex]); err != nil {
-					return err
-				}
-			}
-			s.mu.Lock()
-			s.LastMessageIndex[user] = lastMessageIndex
-			s.mu.Unlock()
-		*/
 	}
 }

@@ -27,7 +27,7 @@ message Msg {
 }
 
 message ConnectRespond {
-  int32 StatusCode = 1;
+  ChatRespond StatusCode = 1;
   Msg Message = 2;
 }
 
