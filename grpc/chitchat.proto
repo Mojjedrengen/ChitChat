@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option go_package = "https://github.com/Mojjedrengen/ChitChat/grpc/chitchat";
+
+package chitchat;
+
+service chat {
+  rpc Connect(SimpleMessage) returns (ConnectRespond);
+  rpc OnGoingChat(stream SimpleMessage) returns (stream Msg);
+  rpc Disconnect(SimpleMessage) returns (SimpleMessage);
+}
+
+message User {
+  string Uuid = 1;
+}
+
+message SimpleMessage {
+  User User = 1;
+  string Message = 2;
+}
+
+message Msg {
+  User User = 1;
+  int64 UnixTime = 2;
+  string Message = 3;
+}
+
+message ConnectRespond {
+  int32 StatusCode = 1;
+  repeated Msg PrevMessage = 2;
+}
