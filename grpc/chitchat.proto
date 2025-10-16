@@ -5,9 +5,9 @@ option go_package = "github.com/Mojjedrengen/ChitChat/grpc/chitchat";
 package chitchat;
 
 service chat {
-  rpc Connect(SimpleMessage) returns (ConnectRespond);
-  rpc OnGoingChat(stream SimpleMessage) returns (stream Msg);
-  rpc Disconnect(SimpleMessage) returns (SimpleMessage);
+  rpc Connect(SimpleMessage) returns (stream ConnectRespond);
+  rpc OnGoingChat(stream SimpleMessage) returns (stream ChatRespond);
+  rpc Disconnect(SimpleMessage) returns (ChatRespond);
 }
 
 message User {
@@ -28,5 +28,11 @@ message Msg {
 
 message ConnectRespond {
   int32 StatusCode = 1;
-  repeated Msg PrevMessage = 2;
+  Msg Message = 2;
+}
+
+// Use HTTP response status code
+message ChatRespond {
+  int32 StatusCode = 1;
+  string context = 2;
 }

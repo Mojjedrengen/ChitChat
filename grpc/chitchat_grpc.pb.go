@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.1
-// source: chitchat.proto
+// source: grpc/chitchat.proto
 
 package chitchat
 
@@ -28,9 +28,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatClient interface {
-	Connect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (*ConnectRespond, error)
-	OnGoingChat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SimpleMessage, Msg], error)
-	Disconnect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (*SimpleMessage, error)
+	Connect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ConnectRespond], error)
+	OnGoingChat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SimpleMessage, ChatRespond], error)
+	Disconnect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (*ChatRespond, error)
 }
 
 type chatClient struct {
@@ -41,32 +41,41 @@ func NewChatClient(cc grpc.ClientConnInterface) ChatClient {
 	return &chatClient{cc}
 }
 
-func (c *chatClient) Connect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (*ConnectRespond, error) {
+func (c *chatClient) Connect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ConnectRespond], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ConnectRespond)
-	err := c.cc.Invoke(ctx, Chat_Connect_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Chat_ServiceDesc.Streams[0], Chat_Connect_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *chatClient) OnGoingChat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SimpleMessage, Msg], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &Chat_ServiceDesc.Streams[0], Chat_OnGoingChat_FullMethodName, cOpts...)
-	if err != nil {
+	x := &grpc.GenericClientStream[SimpleMessage, ConnectRespond]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[SimpleMessage, Msg]{ClientStream: stream}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Chat_OnGoingChatClient = grpc.BidiStreamingClient[SimpleMessage, Msg]
+type Chat_ConnectClient = grpc.ServerStreamingClient[ConnectRespond]
 
-func (c *chatClient) Disconnect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (*SimpleMessage, error) {
+func (c *chatClient) OnGoingChat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SimpleMessage, ChatRespond], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SimpleMessage)
+	stream, err := c.cc.NewStream(ctx, &Chat_ServiceDesc.Streams[1], Chat_OnGoingChat_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SimpleMessage, ChatRespond]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Chat_OnGoingChatClient = grpc.BidiStreamingClient[SimpleMessage, ChatRespond]
+
+func (c *chatClient) Disconnect(ctx context.Context, in *SimpleMessage, opts ...grpc.CallOption) (*ChatRespond, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatRespond)
 	err := c.cc.Invoke(ctx, Chat_Disconnect_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -78,9 +87,9 @@ func (c *chatClient) Disconnect(ctx context.Context, in *SimpleMessage, opts ...
 // All implementations must embed UnimplementedChatServer
 // for forward compatibility.
 type ChatServer interface {
-	Connect(context.Context, *SimpleMessage) (*ConnectRespond, error)
-	OnGoingChat(grpc.BidiStreamingServer[SimpleMessage, Msg]) error
-	Disconnect(context.Context, *SimpleMessage) (*SimpleMessage, error)
+	Connect(*SimpleMessage, grpc.ServerStreamingServer[ConnectRespond]) error
+	OnGoingChat(grpc.BidiStreamingServer[SimpleMessage, ChatRespond]) error
+	Disconnect(context.Context, *SimpleMessage) (*ChatRespond, error)
 	mustEmbedUnimplementedChatServer()
 }
 
@@ -91,13 +100,13 @@ type ChatServer interface {
 // pointer dereference when methods are called.
 type UnimplementedChatServer struct{}
 
-func (UnimplementedChatServer) Connect(context.Context, *SimpleMessage) (*ConnectRespond, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+func (UnimplementedChatServer) Connect(*SimpleMessage, grpc.ServerStreamingServer[ConnectRespond]) error {
+	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
 }
-func (UnimplementedChatServer) OnGoingChat(grpc.BidiStreamingServer[SimpleMessage, Msg]) error {
+func (UnimplementedChatServer) OnGoingChat(grpc.BidiStreamingServer[SimpleMessage, ChatRespond]) error {
 	return status.Errorf(codes.Unimplemented, "method OnGoingChat not implemented")
 }
-func (UnimplementedChatServer) Disconnect(context.Context, *SimpleMessage) (*SimpleMessage, error) {
+func (UnimplementedChatServer) Disconnect(context.Context, *SimpleMessage) (*ChatRespond, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Disconnect not implemented")
 }
 func (UnimplementedChatServer) mustEmbedUnimplementedChatServer() {}
@@ -121,30 +130,23 @@ func RegisterChatServer(s grpc.ServiceRegistrar, srv ChatServer) {
 	s.RegisterService(&Chat_ServiceDesc, srv)
 }
 
-func _Chat_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SimpleMessage)
-	if err := dec(in); err != nil {
-		return nil, err
+func _Chat_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SimpleMessage)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(ChatServer).Connect(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Chat_Connect_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServer).Connect(ctx, req.(*SimpleMessage))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Chat_OnGoingChat_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ChatServer).OnGoingChat(&grpc.GenericServerStream[SimpleMessage, Msg]{ServerStream: stream})
+	return srv.(ChatServer).Connect(m, &grpc.GenericServerStream[SimpleMessage, ConnectRespond]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Chat_OnGoingChatServer = grpc.BidiStreamingServer[SimpleMessage, Msg]
+type Chat_ConnectServer = grpc.ServerStreamingServer[ConnectRespond]
+
+func _Chat_OnGoingChat_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ChatServer).OnGoingChat(&grpc.GenericServerStream[SimpleMessage, ChatRespond]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Chat_OnGoingChatServer = grpc.BidiStreamingServer[SimpleMessage, ChatRespond]
 
 func _Chat_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SimpleMessage)
@@ -172,15 +174,16 @@ var Chat_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ChatServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Connect",
-			Handler:    _Chat_Connect_Handler,
-		},
-		{
 			MethodName: "Disconnect",
 			Handler:    _Chat_Disconnect_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Connect",
+			Handler:       _Chat_Connect_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "OnGoingChat",
 			Handler:       _Chat_OnGoingChat_Handler,
@@ -188,5 +191,5 @@ var Chat_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "chitchat.proto",
+	Metadata: "grpc/chitchat.proto",
 }

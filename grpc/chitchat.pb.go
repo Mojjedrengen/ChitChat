@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.32.1
-// source: chitchat.proto
+// source: grpc/chitchat.proto
 
 package chitchat
 
@@ -30,7 +30,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_chitchat_proto_msgTypes[0]
+	mi := &file_grpc_chitchat_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_chitchat_proto_msgTypes[0]
+	mi := &file_grpc_chitchat_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_chitchat_proto_rawDescGZIP(), []int{0}
+	return file_grpc_chitchat_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *User) GetUuid() string {
@@ -75,7 +75,7 @@ type SimpleMessage struct {
 
 func (x *SimpleMessage) Reset() {
 	*x = SimpleMessage{}
-	mi := &file_chitchat_proto_msgTypes[1]
+	mi := &file_grpc_chitchat_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +87,7 @@ func (x *SimpleMessage) String() string {
 func (*SimpleMessage) ProtoMessage() {}
 
 func (x *SimpleMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_chitchat_proto_msgTypes[1]
+	mi := &file_grpc_chitchat_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +100,7 @@ func (x *SimpleMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SimpleMessage.ProtoReflect.Descriptor instead.
 func (*SimpleMessage) Descriptor() ([]byte, []int) {
-	return file_chitchat_proto_rawDescGZIP(), []int{1}
+	return file_grpc_chitchat_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SimpleMessage) GetUser() *User {
@@ -129,7 +129,7 @@ type Msg struct {
 
 func (x *Msg) Reset() {
 	*x = Msg{}
-	mi := &file_chitchat_proto_msgTypes[2]
+	mi := &file_grpc_chitchat_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +141,7 @@ func (x *Msg) String() string {
 func (*Msg) ProtoMessage() {}
 
 func (x *Msg) ProtoReflect() protoreflect.Message {
-	mi := &file_chitchat_proto_msgTypes[2]
+	mi := &file_grpc_chitchat_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +154,7 @@ func (x *Msg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Msg.ProtoReflect.Descriptor instead.
 func (*Msg) Descriptor() ([]byte, []int) {
-	return file_chitchat_proto_rawDescGZIP(), []int{2}
+	return file_grpc_chitchat_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Msg) GetUser() *User {
@@ -188,14 +188,14 @@ func (x *Msg) GetError() string {
 type ConnectRespond struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StatusCode    int32                  `protobuf:"varint,1,opt,name=StatusCode,proto3" json:"StatusCode,omitempty"`
-	PrevMessage   []*Msg                 `protobuf:"bytes,2,rep,name=PrevMessage,proto3" json:"PrevMessage,omitempty"`
+	Message       *Msg                   `protobuf:"bytes,2,opt,name=Message,proto3" json:"Message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConnectRespond) Reset() {
 	*x = ConnectRespond{}
-	mi := &file_chitchat_proto_msgTypes[3]
+	mi := &file_grpc_chitchat_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -207,7 +207,7 @@ func (x *ConnectRespond) String() string {
 func (*ConnectRespond) ProtoMessage() {}
 
 func (x *ConnectRespond) ProtoReflect() protoreflect.Message {
-	mi := &file_chitchat_proto_msgTypes[3]
+	mi := &file_grpc_chitchat_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -220,7 +220,7 @@ func (x *ConnectRespond) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectRespond.ProtoReflect.Descriptor instead.
 func (*ConnectRespond) Descriptor() ([]byte, []int) {
-	return file_chitchat_proto_rawDescGZIP(), []int{3}
+	return file_grpc_chitchat_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ConnectRespond) GetStatusCode() int32 {
@@ -230,18 +230,71 @@ func (x *ConnectRespond) GetStatusCode() int32 {
 	return 0
 }
 
-func (x *ConnectRespond) GetPrevMessage() []*Msg {
+func (x *ConnectRespond) GetMessage() *Msg {
 	if x != nil {
-		return x.PrevMessage
+		return x.Message
 	}
 	return nil
 }
 
-var File_chitchat_proto protoreflect.FileDescriptor
+// Use HTTP response status code
+type ChatRespond struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StatusCode    int32                  `protobuf:"varint,1,opt,name=StatusCode,proto3" json:"StatusCode,omitempty"`
+	Context       string                 `protobuf:"bytes,2,opt,name=context,proto3" json:"context,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_chitchat_proto_rawDesc = "" +
+func (x *ChatRespond) Reset() {
+	*x = ChatRespond{}
+	mi := &file_grpc_chitchat_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatRespond) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatRespond) ProtoMessage() {}
+
+func (x *ChatRespond) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_chitchat_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatRespond.ProtoReflect.Descriptor instead.
+func (*ChatRespond) Descriptor() ([]byte, []int) {
+	return file_grpc_chitchat_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ChatRespond) GetStatusCode() int32 {
+	if x != nil {
+		return x.StatusCode
+	}
+	return 0
+}
+
+func (x *ChatRespond) GetContext() string {
+	if x != nil {
+		return x.Context
+	}
+	return ""
+}
+
+var File_grpc_chitchat_proto protoreflect.FileDescriptor
+
+const file_grpc_chitchat_proto_rawDesc = "" +
 	"\n" +
-	"\x0echitchat.proto\x12\bchitchat\"\x1a\n" +
+	"\x13grpc/chitchat.proto\x12\bchitchat\"\x1a\n" +
 	"\x04User\x12\x12\n" +
 	"\x04Uuid\x18\x01 \x01(\tR\x04Uuid\"M\n" +
 	"\rSimpleMessage\x12\"\n" +
@@ -251,47 +304,53 @@ const file_chitchat_proto_rawDesc = "" +
 	"\x04User\x18\x01 \x01(\v2\x0e.chitchat.UserR\x04User\x12\x1a\n" +
 	"\bUnixTime\x18\x02 \x01(\x03R\bUnixTime\x12\x18\n" +
 	"\aMessage\x18\x03 \x01(\tR\aMessage\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"a\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"Y\n" +
 	"\x0eConnectRespond\x12\x1e\n" +
 	"\n" +
 	"StatusCode\x18\x01 \x01(\x05R\n" +
-	"StatusCode\x12/\n" +
-	"\vPrevMessage\x18\x02 \x03(\v2\r.chitchat.MsgR\vPrevMessage2\xbf\x01\n" +
-	"\x04chat\x12<\n" +
-	"\aConnect\x12\x17.chitchat.SimpleMessage\x1a\x18.chitchat.ConnectRespond\x129\n" +
-	"\vOnGoingChat\x12\x17.chitchat.SimpleMessage\x1a\r.chitchat.Msg(\x010\x01\x12>\n" +
+	"StatusCode\x12'\n" +
+	"\aMessage\x18\x02 \x01(\v2\r.chitchat.MsgR\aMessage\"G\n" +
+	"\vChatRespond\x12\x1e\n" +
 	"\n" +
-	"Disconnect\x12\x17.chitchat.SimpleMessage\x1a\x17.chitchat.SimpleMessageB0Z.github.com/Mojjedrengen/ChitChat/grpc/chitchatb\x06proto3"
+	"StatusCode\x18\x01 \x01(\x05R\n" +
+	"StatusCode\x12\x18\n" +
+	"\acontext\x18\x02 \x01(\tR\acontext2\xc7\x01\n" +
+	"\x04chat\x12>\n" +
+	"\aConnect\x12\x17.chitchat.SimpleMessage\x1a\x18.chitchat.ConnectRespond0\x01\x12A\n" +
+	"\vOnGoingChat\x12\x17.chitchat.SimpleMessage\x1a\x15.chitchat.ChatRespond(\x010\x01\x12<\n" +
+	"\n" +
+	"Disconnect\x12\x17.chitchat.SimpleMessage\x1a\x15.chitchat.ChatRespondB0Z.github.com/Mojjedrengen/ChitChat/grpc/chitchatb\x06proto3"
 
 var (
-	file_chitchat_proto_rawDescOnce sync.Once
-	file_chitchat_proto_rawDescData []byte
+	file_grpc_chitchat_proto_rawDescOnce sync.Once
+	file_grpc_chitchat_proto_rawDescData []byte
 )
 
-func file_chitchat_proto_rawDescGZIP() []byte {
-	file_chitchat_proto_rawDescOnce.Do(func() {
-		file_chitchat_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_chitchat_proto_rawDesc), len(file_chitchat_proto_rawDesc)))
+func file_grpc_chitchat_proto_rawDescGZIP() []byte {
+	file_grpc_chitchat_proto_rawDescOnce.Do(func() {
+		file_grpc_chitchat_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_grpc_chitchat_proto_rawDesc), len(file_grpc_chitchat_proto_rawDesc)))
 	})
-	return file_chitchat_proto_rawDescData
+	return file_grpc_chitchat_proto_rawDescData
 }
 
-var file_chitchat_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_chitchat_proto_goTypes = []any{
+var file_grpc_chitchat_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_grpc_chitchat_proto_goTypes = []any{
 	(*User)(nil),           // 0: chitchat.User
 	(*SimpleMessage)(nil),  // 1: chitchat.SimpleMessage
 	(*Msg)(nil),            // 2: chitchat.Msg
 	(*ConnectRespond)(nil), // 3: chitchat.ConnectRespond
+	(*ChatRespond)(nil),    // 4: chitchat.ChatRespond
 }
-var file_chitchat_proto_depIdxs = []int32{
+var file_grpc_chitchat_proto_depIdxs = []int32{
 	0, // 0: chitchat.SimpleMessage.User:type_name -> chitchat.User
 	0, // 1: chitchat.Msg.User:type_name -> chitchat.User
-	2, // 2: chitchat.ConnectRespond.PrevMessage:type_name -> chitchat.Msg
+	2, // 2: chitchat.ConnectRespond.Message:type_name -> chitchat.Msg
 	1, // 3: chitchat.chat.Connect:input_type -> chitchat.SimpleMessage
 	1, // 4: chitchat.chat.OnGoingChat:input_type -> chitchat.SimpleMessage
 	1, // 5: chitchat.chat.Disconnect:input_type -> chitchat.SimpleMessage
 	3, // 6: chitchat.chat.Connect:output_type -> chitchat.ConnectRespond
-	2, // 7: chitchat.chat.OnGoingChat:output_type -> chitchat.Msg
-	1, // 8: chitchat.chat.Disconnect:output_type -> chitchat.SimpleMessage
+	4, // 7: chitchat.chat.OnGoingChat:output_type -> chitchat.ChatRespond
+	4, // 8: chitchat.chat.Disconnect:output_type -> chitchat.ChatRespond
 	6, // [6:9] is the sub-list for method output_type
 	3, // [3:6] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -299,26 +358,26 @@ var file_chitchat_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_chitchat_proto_init() }
-func file_chitchat_proto_init() {
-	if File_chitchat_proto != nil {
+func init() { file_grpc_chitchat_proto_init() }
+func file_grpc_chitchat_proto_init() {
+	if File_grpc_chitchat_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chitchat_proto_rawDesc), len(file_chitchat_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_chitchat_proto_rawDesc), len(file_grpc_chitchat_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_chitchat_proto_goTypes,
-		DependencyIndexes: file_chitchat_proto_depIdxs,
-		MessageInfos:      file_chitchat_proto_msgTypes,
+		GoTypes:           file_grpc_chitchat_proto_goTypes,
+		DependencyIndexes: file_grpc_chitchat_proto_depIdxs,
+		MessageInfos:      file_grpc_chitchat_proto_msgTypes,
 	}.Build()
-	File_chitchat_proto = out.File
-	file_chitchat_proto_goTypes = nil
-	file_chitchat_proto_depIdxs = nil
+	File_grpc_chitchat_proto = out.File
+	file_grpc_chitchat_proto_goTypes = nil
+	file_grpc_chitchat_proto_depIdxs = nil
 }
