@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "https://github.com/Mojjedrengen/ChitChat/grpc/chitchat";
+option go_package = "github.com/Mojjedrengen/ChitChat/grpc/chitchat";
 
 package chitchat;
 
