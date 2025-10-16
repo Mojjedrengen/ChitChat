@@ -122,6 +122,7 @@ type Msg struct {
 	User          *User                  `protobuf:"bytes,1,opt,name=User,proto3" json:"User,omitempty"`
 	UnixTime      int64                  `protobuf:"varint,2,opt,name=UnixTime,proto3" json:"UnixTime,omitempty"`
 	Message       string                 `protobuf:"bytes,3,opt,name=Message,proto3" json:"Message,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -173,6 +174,13 @@ func (x *Msg) GetUnixTime() int64 {
 func (x *Msg) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *Msg) GetError() string {
+	if x != nil {
+		return x.Error
 	}
 	return ""
 }
@@ -238,11 +246,12 @@ const file_chitchat_proto_rawDesc = "" +
 	"\x04Uuid\x18\x01 \x01(\tR\x04Uuid\"M\n" +
 	"\rSimpleMessage\x12\"\n" +
 	"\x04User\x18\x01 \x01(\v2\x0e.chitchat.UserR\x04User\x12\x18\n" +
-	"\aMessage\x18\x02 \x01(\tR\aMessage\"_\n" +
+	"\aMessage\x18\x02 \x01(\tR\aMessage\"u\n" +
 	"\x03Msg\x12\"\n" +
 	"\x04User\x18\x01 \x01(\v2\x0e.chitchat.UserR\x04User\x12\x1a\n" +
 	"\bUnixTime\x18\x02 \x01(\x03R\bUnixTime\x12\x18\n" +
-	"\aMessage\x18\x03 \x01(\tR\aMessage\"a\n" +
+	"\aMessage\x18\x03 \x01(\tR\aMessage\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"a\n" +
 	"\x0eConnectRespond\x12\x1e\n" +
 	"\n" +
 	"StatusCode\x18\x01 \x01(\x05R\n" +
@@ -252,7 +261,7 @@ const file_chitchat_proto_rawDesc = "" +
 	"\aConnect\x12\x17.chitchat.SimpleMessage\x1a\x18.chitchat.ConnectRespond\x129\n" +
 	"\vOnGoingChat\x12\x17.chitchat.SimpleMessage\x1a\r.chitchat.Msg(\x010\x01\x12>\n" +
 	"\n" +
-	"Disconnect\x12\x17.chitchat.SimpleMessage\x1a\x17.chitchat.SimpleMessageB8Z6https://github.com/Mojjedrengen/ChitChat/grpc/chitchatb\x06proto3"
+	"Disconnect\x12\x17.chitchat.SimpleMessage\x1a\x17.chitchat.SimpleMessageB0Z.github.com/Mojjedrengen/ChitChat/grpc/chitchatb\x06proto3"
 
 var (
 	file_chitchat_proto_rawDescOnce sync.Once

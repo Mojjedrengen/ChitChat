@@ -23,6 +23,7 @@ message Msg {
   User User = 1;
   int64 UnixTime = 2;
   string Message = 3;
+  string error = 4;
 }
 
 message ConnectRespond {
