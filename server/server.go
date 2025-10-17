@@ -9,6 +9,7 @@ import (
 	"time"
 
 	pb "github.com/Mojjedrengen/ChitChat/grpc"
+	"github.com/Mojjedrengen/ChitChat/util"
 )
 
 func main() {
@@ -237,5 +238,26 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 			Context:    "ERROR: INVALID DISCONNECT REQUEST",
 		}
 		return disconnectRespond, errors.New("err: invalid disconnect request")
+	}
+}
+
+func bufferhandler(s ChatServer) {
+	var messageBuffer []*pb.Msg
+
+	for {
+		messageBuffer = []*pb.Msg{}
+		for _, channel := range s.ConnectedClients {
+			select {
+			case msg := <-channel:
+				messageBuffer = append(messageBuffer, msg)
+			default:
+				continue
+			}
+		}
+		messageBuffer = util.SortMsgListBasedOnTime(messageBuffer)
+
+		s.mu.Lock()
+		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
+		s.mu.Unlock()
 	}
 }
