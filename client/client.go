@@ -65,6 +65,27 @@ func connect(client chitchat.ChatClient, messageClient MessageClient) {
 			messageClient.messageBuffer = make([]chitchat.Msg, 0, 1)
 		}
 		messageClient.messageBuffer = append(messageClient.messageBuffer, *message.Message)
+		messageClient.messageLog = append(messageClient.messageLog, *message.StatusCode)
+		messageClient.mu.Unlock()
+	}
+}
+
+func sendMessage(client chitchat.ChatClient, messageClient MessageClient, messageChan <-chan chitchat.SimpleMessage) {
+	stream, err := client.OnGoingChat(context.Background())
+	if err != nil {
+		log.Fatalf("Fail to establish send connection: %v", err)
+	}
+	for {
+		msg := <-messageChan
+		if err := stream.Send(&msg); err != nil {
+			log.Fatalf("Failed to send message: %v", err)
+		}
+		resiveMessage, err := stream.Recv()
+		if err != nil {
+			log.Fatalf("Fail to get respond after message: %v", err)
+		}
+		messageClient.mu.Lock()
+		messageClient.messageLog = append(messageClient.messageLog, *resiveMessage)
 		messageClient.mu.Unlock()
 	}
 }
