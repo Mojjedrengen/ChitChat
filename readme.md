@@ -1,6 +1,9 @@
 
 
-
+Missing featurs:
+Client Displaying messages
+Client reading user input and sending
+Client Disconnecting
 
 
 
