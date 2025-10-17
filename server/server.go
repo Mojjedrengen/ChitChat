@@ -3,18 +3,22 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"sync"
 	"time"
 
 	pb "github.com/Mojjedrengen/ChitChat/grpc"
 	"github.com/Mojjedrengen/ChitChat/util"
+	"google.golang.org/grpc"
 )
 
-func main() {
-	fmt.Println("hello world")
-}
+var (
+	port = flag.Int("port", 50051, "The Server port")
+)
 
 type ChatServer struct {
 	pb.UnimplementedChatServer
@@ -241,7 +245,7 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 	}
 }
 
-func bufferhandler(s ChatServer) {
+func bufferhandler(s *ChatServer) {
 	var messageBuffer []*pb.Msg
 
 	for {
@@ -260,4 +264,28 @@ func bufferhandler(s ChatServer) {
 		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
 		s.mu.Unlock()
 	}
+}
+
+func newServer() *ChatServer {
+	s := &ChatServer{
+		MessageHistory:             make([]*pb.Msg, 0, 10),
+		ConnectedClients:           make(map[*pb.User]chan *pb.Msg),
+		ConnectedClientsDisconnect: make(map[*pb.User]chan bool),
+		DisconnectClientRespons:    make(map[*pb.User]chan bool),
+		LastMessageIndex:           make(map[*pb.User]int),
+	}
+	go bufferhandler(s)
+	return s
+}
+
+func main() {
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	var opts []grpc.ServerOption
+
+	grpcServer := grpc.NewServer(opts...)
+	pb.RegisterChatServer(grpcServer, newServer())
+	grpcServer.Serve(lis)
 }
