@@ -14,22 +14,21 @@ import (
 type MessageClient struct {
 	user           chitchat.User
 	messageHistroy []chitchat.Msg
-	messageBuffer  []chitchat.Msg
 	messageLog     []chitchat.ChatRespond
 	mu             sync.Mutex
 	client         chitchat.ChatClient
 }
 
-func NewClient(user chitchat.User) *MessageClient {
+func NewClient(user chitchat.User, client chitchat.ChatClient) *MessageClient {
 	return &MessageClient{
 		messageHistroy: make([]chitchat.Msg, 0),
 		messageLog:     make([]chitchat.ChatRespond, 0),
-		messageBuffer:  nil,
 		user:           user,
+		client:         client,
 	}
 }
 
-func (messageClient MessageClient) Connect() {
+func (messageClient MessageClient) Connect(messageBuf chan<- chitchat.Msg) {
 	connectMessage := &chitchat.SimpleMessage{
 		User:    &messageClient.user,
 		Message: "Connect",
@@ -57,12 +56,9 @@ func (messageClient MessageClient) Connect() {
 		}
 		messageClient.mu.Lock()
 		messageClient.messageHistroy = append(messageClient.messageHistroy, *message.Message)
-		if messageClient.messageBuffer == nil {
-			messageClient.messageBuffer = make([]chitchat.Msg, 0, 1)
-		}
-		messageClient.messageBuffer = append(messageClient.messageBuffer, *message.Message)
 		messageClient.messageLog = append(messageClient.messageLog, *message.StatusCode)
 		messageClient.mu.Unlock()
+		messageBuf <- *message.Message
 	}
 }
 
