@@ -9,6 +9,7 @@ import (
 	messageclient "github.com/Mojjedrengen/ChitChat/client/messageClient"
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -19,6 +20,8 @@ func main() {
 	fmt.Println("hello world")
 
 	var opts []grpc.DialOption
+
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	conn, err := grpc.NewClient(*serverAddr, opts...)
 	if err != nil {
@@ -35,4 +38,8 @@ func main() {
 	go messageClient.Connect(reciveBuffer)
 	go messageClient.SendMessage(sendBuffer)
 	ui.SetUpUI(reciveBuffer, sendBuffer, messageClient)
+
+	for {
+
+	}
 }

@@ -53,12 +53,14 @@ func (UI *BasicUI) writer() {
 		input = strings.TrimSpace(input)
 
 		commands := strings.SplitN(input, " ", 2)
-		commands[2] = strings.TrimSpace(commands[2])
+		commands[1] = strings.TrimSpace(commands[1])
+		commands = append(commands, "") //make shure index is not out of bounds
+		commands = append(commands, "")
 
-		if commands[1] == "Disconnect" {
+		if commands[0] == "Disconnect" {
 			UI.mc.Disconenct()
-		} else if commands[1] == "Say" && len(commands[2]) != 0 {
-			UI.sendBuffer <- commands[2]
+		} else if commands[0] == "say" && len(commands[1]) != 0 {
+			UI.sendBuffer <- commands[1]
 			fmt.Print("\n> ")
 		} else {
 			fmt.Println(UI.helpMessage)
