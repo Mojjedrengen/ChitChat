@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"sync"
+	"time"
 
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
 	"google.golang.org/grpc"
@@ -87,6 +89,28 @@ func sendMessage(client chitchat.ChatClient, messageClient MessageClient, messag
 		messageClient.mu.Lock()
 		messageClient.messageLog = append(messageClient.messageLog, *resiveMessage)
 		messageClient.mu.Unlock()
+	}
+}
+
+func disconenct(client chitchat.ChatClient, messageClient MessageClient) {
+	disconnectMessage := &chitchat.SimpleMessage{
+		User:    &messageClient.user,
+		Message: "Disconnect",
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	respond, err := client.Disconnect(ctx, disconnectMessage)
+	if err != nil {
+		log.Fatal("client.disconnect failed: %v", err)
+	}
+
+	messageClient.mu.Lock()
+	messageClient.messageLog = append(messageClient.messageLog, *respond)
+	messageClient.mu.Unlock()
+	if respond.StatusCode != 200 {
+		log.Fatal("client.disconenct failed: %v", respond.Context)
+	} else {
+		os.Exit(0)
 	}
 }
 
