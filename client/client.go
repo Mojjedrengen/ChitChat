@@ -35,7 +35,7 @@ func newClient(user chitchat.User) *MessageClient {
 	}
 }
 
-func connect(client chitchat.ChatClient, messageClient MessageClient) {
+func (messageClient MessageClient) Connect(client chitchat.ChatClient) {
 	connectMessage := &chitchat.SimpleMessage{
 		User:    &messageClient.user,
 		Message: "Connect",
@@ -72,7 +72,7 @@ func connect(client chitchat.ChatClient, messageClient MessageClient) {
 	}
 }
 
-func sendMessage(client chitchat.ChatClient, messageClient MessageClient, messageChan <-chan chitchat.SimpleMessage) {
+func (messageClient MessageClient) SendMessage(client chitchat.ChatClient, messageChan <-chan chitchat.SimpleMessage) {
 	stream, err := client.OnGoingChat(context.Background())
 	if err != nil {
 		log.Fatalf("Fail to establish send connection: %v", err)
@@ -92,7 +92,7 @@ func sendMessage(client chitchat.ChatClient, messageClient MessageClient, messag
 	}
 }
 
-func disconenct(client chitchat.ChatClient, messageClient MessageClient) {
+func (messageClient MessageClient) Disconenct(client chitchat.ChatClient) {
 	disconnectMessage := &chitchat.SimpleMessage{
 		User:    &messageClient.user,
 		Message: "Disconnect",
