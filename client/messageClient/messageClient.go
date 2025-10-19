@@ -28,7 +28,7 @@ func NewClient(user chitchat.User, client chitchat.ChatClient) *MessageClient {
 	}
 }
 
-func (messageClient MessageClient) Connect(messageBuf chan<- chitchat.Msg) {
+func (messageClient MessageClient) Connect(messageBuf chan<- *chitchat.Msg) {
 	connectMessage := &chitchat.SimpleMessage{
 		User:    &messageClient.user,
 		Message: "Connect",
@@ -58,17 +58,20 @@ func (messageClient MessageClient) Connect(messageBuf chan<- chitchat.Msg) {
 		messageClient.messageHistroy = append(messageClient.messageHistroy, *message.Message)
 		messageClient.messageLog = append(messageClient.messageLog, *message.StatusCode)
 		messageClient.mu.Unlock()
-		messageBuf <- *message.Message
+		messageBuf <- message.Message
 	}
 }
 
-func (messageClient MessageClient) SendMessage(messageChan <-chan chitchat.SimpleMessage) {
+func (messageClient MessageClient) SendMessage(messageChan <-chan string) {
 	stream, err := messageClient.client.OnGoingChat(context.Background())
 	if err != nil {
 		log.Fatalf("Fail to establish send connection: %v", err)
 	}
 	for {
-		msg := <-messageChan
+		msg := chitchat.SimpleMessage{
+			User:    &messageClient.user,
+			Message: <-messageChan,
+		}
 		if err := stream.Send(&msg); err != nil {
 			log.Fatalf("Failed to send message: %v", err)
 		}
