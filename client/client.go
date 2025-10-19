@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	ui "github.com/Mojjedrengen/ChitChat/client/UI"
 	messageclient "github.com/Mojjedrengen/ChitChat/client/messageClient"
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
 	"google.golang.org/grpc"
@@ -28,5 +29,10 @@ func main() {
 	user := chitchat.User{
 		Uuid: "test",
 	}
-	messageClient := messageclient.NewClient(user)
+	messageClient := messageclient.NewClient(user, client)
+	reciveBuffer := make(chan *chitchat.Msg, 10)
+	sendBuffer := make(chan string, 5)
+	go messageClient.Connect(reciveBuffer)
+	go messageClient.SendMessage(sendBuffer)
+	ui.SetUpUI(reciveBuffer, sendBuffer, messageClient)
 }

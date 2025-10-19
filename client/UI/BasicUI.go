@@ -13,13 +13,13 @@ import (
 )
 
 type BasicUI struct {
-	mc           messageclient.MessageClient
+	mc           *messageclient.MessageClient
 	reciveBuffer chan *chitchat.Msg
 	sendBuffer   chan string
 	helpMessage  string
 }
 
-func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageClient messageclient.MessageClient) {
+func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageClient *messageclient.MessageClient) {
 	UI := BasicUI{
 		mc:           messageClient,
 		reciveBuffer: reciveBuffer,
@@ -30,7 +30,7 @@ func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageCli
 	go UI.writer()
 }
 
-func (UI BasicUI) printer() {
+func (UI *BasicUI) printer() {
 	for {
 		fmt.Print("> ")
 		msg := <-UI.reciveBuffer
@@ -42,7 +42,7 @@ func (UI BasicUI) printer() {
 	}
 }
 
-func (UI BasicUI) writer() {
+func (UI *BasicUI) writer() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		input, err := reader.ReadString('\n')
