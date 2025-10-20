@@ -118,8 +118,10 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 	}
 	firstIteration := true
 	for {
+		var in *pb.SimpleMessage
+		var err error
 		if firstIteration {
-			in, err := stream.Recv()
+			in, err = stream.Recv()
 			userpb = in.User
 			if err == io.EOF {
 				return nil
@@ -135,8 +137,6 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 				return errors.New("Disconnected by user")
 			}
 		default:
-			var in *pb.SimpleMessage
-			var err error
 			if !firstIteration {
 				in, err = stream.Recv()
 				if err == io.EOF {
@@ -145,6 +145,8 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 				if err != nil {
 					return err
 				}
+			} else {
+				firstIteration = false
 			}
 			user := in.User
 			message := in.Message
