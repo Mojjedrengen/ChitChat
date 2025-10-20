@@ -137,7 +137,9 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		default:
 			var in *pb.SimpleMessage
 			var err error
-			if !firstIteration {
+			if firstIteration {
+
+			} else {
 				in, err = stream.Recv()
 				if err == io.EOF {
 					return nil
@@ -145,8 +147,10 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 				if err != nil {
 					return err
 				}
+				userpb = in.User
 			}
-			user := in.User
+			firstIteration = false
+			user := userpb
 			message := in.Message
 			timestamp := time.Now().Unix()
 
@@ -174,7 +178,9 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 				}
 			} else {
 				sendMessage.Message = message
-				s.ConnectedClients[user] <- sendMessage
+				for _, ch := range s.ConnectedClients {
+					ch <- sendMessage
+				}
 				respond = pb.ChatRespond{
 					StatusCode: 200,
 					Context:    "Message Send",
