@@ -246,7 +246,29 @@ func bufferhandler(s *ChatServer) {
 		s.mu.Lock()
 		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
 		s.mu.Unlock()
+
+		if len(messageBuffer) > 0 {
+			s.mu.Lock()
+			s.MessageHistory = append(s.MessageHistory, messageBuffer...)
+			s.mu.Unlock()
+
+			s.mu.Lock()
+			for _, msg := range messageBuffer {
+				for user, ch := range s.ConnectedClients {
+					if user == AdminUser {
+						continue //Skip admin channel
+					}
+					select {
+					case ch <- msg:
+					default:
+					}
+				}
+			}
+			s.mu.Unlock()
+		}
+
 	}
+
 }
 
 func newServer() *ChatServer {
