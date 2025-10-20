@@ -126,7 +126,20 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		return err
 	}
 	userpb = first.User
+	//use exact pointer stored in connect()
+	var storedUser *pb.User
+	s.mu.Lock()
+	for u := range s.ConnectedClients {
+		if u.Uuid == userpb.Uuid {
+			storedUser = u
+			break
+		}
+	}
+	s.mu.Unlock()
 
+	if storedUser == nil {
+		return errors.New("User not found")
+	}
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
