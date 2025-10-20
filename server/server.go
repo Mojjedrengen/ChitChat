@@ -157,7 +157,16 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 			}
 			timestamp := time.Now().Unix()
 
-			if _, contains := s.ConnectedClients[user]; !contains {
+			found := false
+
+			for u := range s.ConnectedClients {
+				if u.Uuid == user.Uuid {
+					found = true
+					break
+				}
+			}
+
+			if !found {
 				stream.Send(&pb.ChatRespond{
 					StatusCode: 401,
 					Context:    "ERROR: CONNECTION NOT ESTABLISHED",
