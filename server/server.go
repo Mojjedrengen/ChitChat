@@ -60,8 +60,9 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 			Message:  fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Uuid, currTime),
 			Error:    fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
 		}
+		s.mu.Lock()
 		s.ConnectedClients[AdminUser] <- connectedMsg
-
+		s.mu.Unlock()
 		for {
 			select {
 			case isDisconnected := <-s.ConnectedClientsDisconnect[user]:
@@ -84,6 +85,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 			default:
 
 				var lastMessageIndex int
+				s.mu.Lock()
 				for lastMessageIndex = s.LastMessageIndex[user]; lastMessageIndex < len(s.MessageHistory); lastMessageIndex++ {
 					respond := pb.ConnectRespond{
 						StatusCode: &pb.ChatRespond{
@@ -92,10 +94,13 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 						},
 						Message: s.MessageHistory[lastMessageIndex],
 					}
+					s.mu.Unlock()
 					if err := stream.Send(&respond); err != nil {
 						return err
 					}
+					s.mu.Lock()
 				}
+				s.mu.Unlock()
 				s.mu.Lock()
 				s.LastMessageIndex[user] = lastMessageIndex
 				s.mu.Unlock()
@@ -133,7 +138,9 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		select {
 		case isDisconnected := <-s.ConnectedClientsDisconnect[userpb]:
 			if isDisconnected {
+				s.mu.Lock()
 				s.DisconnectClientRespons[userpb] <- true
+				s.mu.Unlock()
 				return errors.New("Disconnected by user")
 			}
 		default:
@@ -176,7 +183,9 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 				}
 			} else {
 				sendMessage.Message = message
+				s.mu.Lock()
 				s.ConnectedClients[user] <- sendMessage
+				s.mu.Unlock()
 				respond = pb.ChatRespond{
 					StatusCode: 200,
 					Context:    "Message Send",
@@ -198,17 +207,21 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		s.DisconnectClientRespons[user] = make(chan bool, 2)
 		s.mu.Unlock()
 		for i := 0; i < 2; i++ {
+			s.mu.Lock()
 			s.ConnectedClientsDisconnect[user] <- true
+			s.mu.Unlock()
 		}
 		responds := 0
 		fullyDisconnected := false
 		for fullyDisconnected {
+			s.mu.Lock()
 			if <-s.DisconnectClientRespons[user] {
 				responds++
 				if responds == 2 {
 					fullyDisconnected = true
 				}
 			}
+			s.mu.Unlock()
 		}
 
 		s.mu.Lock()
@@ -228,7 +241,9 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 			Message:  fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Uuid, time),
 			Error:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
 		}
+		s.mu.Lock()
 		s.ConnectedClients[AdminUser] <- disconnectMsg
+		s.mu.Unlock()
 
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
@@ -252,6 +267,7 @@ func bufferhandler(s *ChatServer) {
 
 	for {
 		messageBuffer = []*pb.Msg{}
+		s.mu.Lock()
 		for _, channel := range s.ConnectedClients {
 			select {
 			case msg := <-channel:
@@ -260,6 +276,7 @@ func bufferhandler(s *ChatServer) {
 				continue
 			}
 		}
+		s.mu.Unlock()
 		messageBuffer = util.SortMsgListBasedOnTime(messageBuffer)
 
 		s.mu.Lock()
