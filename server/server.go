@@ -152,7 +152,7 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 			firstIteration = false
 			user := userpb
 			message := ""
-			if in != nul {
+			if in != nil {
 				message = in.Message
 			}
 			timestamp := time.Now().Unix()
