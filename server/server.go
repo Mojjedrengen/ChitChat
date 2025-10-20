@@ -151,7 +151,10 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 			}
 			firstIteration = false
 			user := userpb
-			message := in.Message
+			message := ""
+			if in != nul {
+				message = in.Message
+			}
 			timestamp := time.Now().Unix()
 
 			if _, contains := s.ConnectedClients[user]; !contains {
