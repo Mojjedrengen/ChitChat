@@ -276,6 +276,7 @@ func newServer() *ChatServer {
 		DisconnectClientRespons:    make(map[*pb.User]chan bool),
 		LastMessageIndex:           make(map[*pb.User]int),
 	}
+	s.ConnectedClients[AdminUser] = make(chan *pb.Msg, 10)
 	go bufferhandler(s)
 	return s
 }
