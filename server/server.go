@@ -118,84 +118,48 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 }
 
 func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
-	userpb := &pb.User{
-		Uuid: "",
+	var userpb *pb.User
+
+	first, err := stream.Recv()
+	if err != nil {
+		return err
 	}
-	firstIteration := true
+	userpb = first.User
+
 	for {
-		var in *pb.SimpleMessage
-		var err error
-		if firstIteration {
-			in, err = stream.Recv()
-			userpb = in.User
-			if err == io.EOF {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
 		}
-		select {
-		case isDisconnected := <-s.ConnectedClientsDisconnect[userpb]:
-			if isDisconnected {
-				s.mu.Lock()
-				s.DisconnectClientRespons[userpb] <- true
-				s.mu.Unlock()
-				return errors.New("Disconnected by user")
-			}
-		default:
-			if !firstIteration {
-				in, err = stream.Recv()
-				if err == io.EOF {
-					return nil
-				}
-				if err != nil {
-					return err
-				}
-			} else {
-				firstIteration = false
-			}
-			user := in.User
-			message := in.Message
-			timestamp := time.Now().Unix()
-
-			if _, contains := s.ConnectedClients[user]; !contains {
-				stream.Send(&pb.ChatRespond{
-					StatusCode: 401,
-					Context:    "ERROR: CONNECTION NOT ESTABLISHED",
-				})
-				return errors.New("Unauthorized acces. Establish connection first")
-			}
-
-			sendMessage := &pb.Msg{
-				User:     user,
-				Message:  "",
-				UnixTime: timestamp,
-				Error:    "",
-			}
-			var respond pb.ChatRespond
-
-			if len(message) >= 128 {
-				sendMessage.Error = "ILLEGAL LENGTH"
-				respond = pb.ChatRespond{
-					StatusCode: 400,
-					Context:    "ERROR: ILLEGAL LENGTH OF MESSAGE, MESSAGE CANNOT EXCEED 128",
-				}
-			} else {
-				sendMessage.Message = message
-				s.mu.Lock()
-				s.ConnectedClients[user] <- sendMessage
-				s.mu.Unlock()
-				respond = pb.ChatRespond{
-					StatusCode: 200,
-					Context:    "Message Send",
-				}
-			}
-			if err := stream.Send(&respond); err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
+
+		message := in.Message
+		timestamp := time.Now().Unix()
+
+		s.mu.Lock()
+		clientCh, ok := s.ConnectedClients[userpb]
+		s.mu.Unlock()
+
+		if !ok {
+			stream.Send(&pb.ChatRespond{StatusCode: 401, Context: "CONNECTION NOT ESTABLISHED"})
+			return errors.New("unauthorized")
+		}
+
+		if len(message) >= 128 {
+			stream.Send(&pb.ChatRespond{StatusCode: 401, Context: "ERROR: ILLEGAL LENGTH"})
+			continue
+		}
+
+		sendMsg := &pb.Msg{User: userpb, Message: message, UnixTime: timestamp}
+		s.mu.Lock()
+		clientCh <- sendMsg
+		s.mu.Unlock()
+
+		stream.Send(&pb.ChatRespond{StatusCode: 200, Context: "Message Send"})
 	}
+
 }
 
 func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb.ChatRespond, error) {
