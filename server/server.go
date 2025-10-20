@@ -24,6 +24,7 @@ type ChatServer struct {
 	pb.UnimplementedChatServer
 
 	MessageHistory             []*pb.Msg
+	ConnectedClientsOut        map[*pb.User](chan *pb.Msg)
 	ConnectedClients           map[*pb.User](chan *pb.Msg)
 	ConnectedClientsDisconnect map[*pb.User](chan bool)
 	DisconnectClientRespons    map[*pb.User](chan bool)
@@ -50,6 +51,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 		s.mu.Lock()
 		s.LastMessageIndex[user] = 0
 		s.ConnectedClients[user] = make(chan *pb.Msg, 10)
+		s.ConnectedClientsOut[user] = make(chan *pb.Msg, 10)
 		s.ConnectedClientsDisconnect[user] = make(chan bool, 2)
 		s.mu.Unlock()
 
@@ -84,26 +86,25 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 				}
 			default:
 
-				var lastMessageIndex int
 				s.mu.Lock()
-				for lastMessageIndex = s.LastMessageIndex[user]; lastMessageIndex < len(s.MessageHistory); lastMessageIndex++ {
+				outCh := s.ConnectedClientsOut[user]
+				s.mu.Unlock()
+
+				select {
+				case msg := <-outCh:
 					respond := pb.ConnectRespond{
 						StatusCode: &pb.ChatRespond{
 							StatusCode: 100,
-							Context:    "Sending messages",
+							Context:    "Broadcast message",
 						},
-						Message: s.MessageHistory[lastMessageIndex],
+						Message: msg,
 					}
-					s.mu.Unlock()
 					if err := stream.Send(&respond); err != nil {
 						return err
 					}
-					s.mu.Lock()
+				default:
+					time.Sleep(10 * time.Millisecond)
 				}
-				s.mu.Unlock()
-				s.mu.Lock()
-				s.LastMessageIndex[user] = lastMessageIndex
-				s.mu.Unlock()
 			}
 		}
 	} else {
@@ -245,6 +246,18 @@ func bufferhandler(s *ChatServer) {
 
 		s.mu.Lock()
 		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
+
+		for _, msg := range messageBuffer {
+			for user, ch := range s.ConnectedClientsOut {
+				if user == AdminUser {
+					continue
+				}
+				select {
+				case ch <- msg:
+				default:
+				}
+			}
+		}
 		s.mu.Unlock()
 	}
 }
@@ -252,6 +265,7 @@ func bufferhandler(s *ChatServer) {
 func newServer() *ChatServer {
 	s := &ChatServer{
 		MessageHistory:             make([]*pb.Msg, 0, 10),
+		ConnectedClientsOut:        make(map[*pb.User]chan *pb.Msg),
 		ConnectedClients:           make(map[*pb.User]chan *pb.Msg),
 		ConnectedClientsDisconnect: make(map[*pb.User]chan bool),
 		DisconnectClientRespons:    make(map[*pb.User]chan bool),
