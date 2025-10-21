@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 
 	ui "github.com/Mojjedrengen/ChitChat/client/UI"
 	messageclient "github.com/Mojjedrengen/ChitChat/client/messageClient"
@@ -30,7 +31,7 @@ func main() {
 	defer conn.Close()
 	client := chitchat.NewChatClient(conn)
 	user := chitchat.User{
-		Uuid: "test",
+		Uuid: fmt.Sprintf("user-%d", rand.Intn(1000)),
 	}
 	messageClient := messageclient.NewClient(user, client)
 	reciveBuffer := make(chan *chitchat.Msg, 10)
