@@ -185,8 +185,25 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 }
 
 func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb.ChatRespond, error) {
-	user := msg.User
 	message := msg.Message
+	var storedUser *pb.User
+	s.mu.Lock()
+	for u := range s.ConnectedClients {
+		if u.Uuid == msg.User.Uuid {
+			storedUser = u
+			break
+		}
+	}
+	s.mu.Unlock()
+
+	if storedUser == nil {
+		return &pb.ChatRespond{
+			StatusCode: 401,
+			Context:    "ERROR: USER NOT FOUND",
+		}, errors.New("user not found")
+	}
+
+	user := storedUser
 
 	if message == "Disconnect" && user != nil {
 		s.mu.Lock()
@@ -226,15 +243,7 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 			Error:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
 		}
 		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
-		for u, ch := range s.ConnectedClientsOut {
-			if u == user || u == AdminUser {
-				continue
-			}
-			select {
-			case ch <- disconnectMsg:
-			default:
-			}
-		}
+		s.ConnectedClients[AdminUser] <- disconnectMsg
 		s.mu.Unlock()
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
