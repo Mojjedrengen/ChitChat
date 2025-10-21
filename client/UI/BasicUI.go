@@ -53,6 +53,9 @@ func (UI *BasicUI) writer() {
 		input = strings.TrimSpace(input)
 
 		commands := strings.SplitN(input, " ", 2)
+		if len(commands) < 2 {
+			commands = append(commands, "")
+		}
 		commands[1] = strings.TrimSpace(commands[1])
 		commands = append(commands, "") //make shure index is not out of bounds
 		commands = append(commands, "")
