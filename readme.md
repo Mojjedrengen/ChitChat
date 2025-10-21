@@ -1,10 +1,9 @@
 
 
-Missing featurs:
-Program not working getting error: 2025/10/19 16:34:19 client.connect failed: rpc error: code = Unavailable desc = error reading from server: EOF
-exit status 1
-Get this be using command say hej after both server and client is up
+Missing features:
+Change from physical timestamp to logical time such as lamport clocks
 
+Clients must log all received broadcast messages with a logical timestamps and message
 
 
 
