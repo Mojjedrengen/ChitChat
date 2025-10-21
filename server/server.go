@@ -238,16 +238,6 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		s.ConnectedClients[AdminUser] <- disconnectMsg
 		s.mu.Unlock()
 
-		for u, ch := range s.ConnectedClientsOut {
-			if u == user || u == AdminUser {
-				continue
-			}
-			select {
-			case ch <- disconnectMsg:
-			default:
-			}
-		}
-
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
 			Context:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
