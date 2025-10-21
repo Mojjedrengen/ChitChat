@@ -62,7 +62,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 			Message:  fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Uuid, currTime),
 			Error:    fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
 		}
-		s.mu.Lock()
+		s.mu.Lock() //Same as other adminuser lock
 		s.ConnectedClients[AdminUser] <- connectedMsg
 		s.mu.Unlock()
 		for {
@@ -86,7 +86,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 				}
 			default:
 
-				s.mu.Lock()
+				s.mu.Lock() //Bufferhandler might iterate over connectedclientsout so keep lock here
 				outCh := s.ConnectedClientsOut[user]
 				s.mu.Unlock()
 
@@ -148,9 +148,7 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 			stream.Send(&pb.ChatRespond{StatusCode: 401, Context: "ERROR: ILLEGAL LENGTH"})
 		} else {
 			sendMsg := &pb.Msg{User: storedUser, Message: first.Message, UnixTime: timestamp}
-			s.mu.Lock()
 			s.ConnectedClients[storedUser] <- sendMsg
-			s.mu.Unlock()
 			stream.Send(&pb.ChatRespond{StatusCode: 200, Context: "Message Send"})
 		}
 	}
@@ -165,11 +163,9 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 
 		message := in.Message
 		timestamp := time.Now().Unix()
-
-		s.mu.Lock()
+		s.mu.Lock() //lock here given that other goroutines might be writing to it for protection
 		clientCh, ok := s.ConnectedClients[storedUser]
 		s.mu.Unlock()
-
 		if !ok {
 			stream.Send(&pb.ChatRespond{StatusCode: 401, Context: "CONNECTION NOT ESTABLISHED"})
 			return errors.New("unauthorized")
@@ -181,9 +177,7 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		}
 
 		sendMsg := &pb.Msg{User: storedUser, Message: message, UnixTime: timestamp}
-		s.mu.Lock()
 		clientCh <- sendMsg
-		s.mu.Unlock()
 
 		stream.Send(&pb.ChatRespond{StatusCode: 200, Context: "Message Send"})
 	}
@@ -197,23 +191,21 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 	if message == "Disconnect" && user != nil {
 		s.mu.Lock()
 		s.DisconnectClientRespons[user] = make(chan bool, 2)
-		s.mu.Unlock()
 		for i := 0; i < 2; i++ {
-			s.mu.Lock()
+
 			s.ConnectedClientsDisconnect[user] <- true
-			s.mu.Unlock()
+
 		}
+		s.mu.Unlock()
 		responds := 0
 		fullyDisconnected := false
-		for fullyDisconnected {
-			s.mu.Lock()
+		for !fullyDisconnected {
 			if <-s.DisconnectClientRespons[user] {
 				responds++
 				if responds == 2 {
 					fullyDisconnected = true
 				}
 			}
-			s.mu.Unlock()
 		}
 
 		s.mu.Lock()
@@ -233,10 +225,9 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 			Message:  fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Uuid, time),
 			Error:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
 		}
-		s.mu.Lock()
+		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
 		s.ConnectedClients[AdminUser] <- disconnectMsg
 		s.mu.Unlock()
-
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
 			Context:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
@@ -259,7 +250,7 @@ func bufferhandler(s *ChatServer) {
 
 	for {
 		messageBuffer = []*pb.Msg{}
-		s.mu.Lock()
+		s.mu.Lock() //Lock here since connect and disconnect are modifying map
 		for _, channel := range s.ConnectedClients {
 			select {
 			case msg := <-channel:
