@@ -82,7 +82,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 						},
 					})
 					s.DisconnectClientRespons[user] <- true
-					return errors.New("Disconnected by user")
+					return nil
 				}
 			default:
 
