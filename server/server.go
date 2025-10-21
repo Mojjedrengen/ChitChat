@@ -214,16 +214,8 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 
 		}
 		s.mu.Unlock()
-		responds := 0
-		fullyDisconnected := false
-		for !fullyDisconnected {
-			if <-s.DisconnectClientRespons[user] {
-				responds++
-				if responds == 2 {
-					fullyDisconnected = true
-				}
-			}
-		}
+
+		<-s.DisconnectClientRespons[user]
 
 		s.mu.Lock()
 		close(s.ConnectedClients[user])
@@ -245,6 +237,17 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
 		s.ConnectedClients[AdminUser] <- disconnectMsg
 		s.mu.Unlock()
+
+		for u, ch := range s.ConnectedClientsOut {
+			if u == user || u == AdminUser {
+				continue
+			}
+			select {
+			case ch <- disconnectMsg:
+			default:
+			}
+		}
+
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
 			Context:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
