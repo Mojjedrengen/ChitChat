@@ -140,6 +140,20 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 	if storedUser == nil {
 		return errors.New("User not found")
 	}
+	//Process the first message that was used for identification
+	if first.Message != "" {
+		timestamp := time.Now().Unix()
+
+		if len(first.Message) >= 128 {
+			stream.Send(&pb.ChatRespond{StatusCode: 401, Context: "ERROR: ILLEGAL LENGTH"})
+		} else {
+			sendMsg := &pb.Msg{User: storedUser, Message: first.Message, UnixTime: timestamp}
+			s.mu.Lock()
+			s.ConnectedClients[storedUser] <- sendMsg
+			s.mu.Unlock()
+			stream.Send(&pb.ChatRespond{StatusCode: 200, Context: "Message Send"})
+		}
+	}
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
@@ -153,7 +167,7 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		timestamp := time.Now().Unix()
 
 		s.mu.Lock()
-		clientCh, ok := s.ConnectedClients[userpb]
+		clientCh, ok := s.ConnectedClients[storedUser]
 		s.mu.Unlock()
 
 		if !ok {
@@ -166,7 +180,7 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 			continue
 		}
 
-		sendMsg := &pb.Msg{User: userpb, Message: message, UnixTime: timestamp}
+		sendMsg := &pb.Msg{User: storedUser, Message: message, UnixTime: timestamp}
 		s.mu.Lock()
 		clientCh <- sendMsg
 		s.mu.Unlock()
