@@ -30,7 +30,7 @@ func main() {
 	}
 	defer conn.Close()
 	client := chitchat.NewChatClient(conn)
-	user := chitchat.User{
+	user := &chitchat.User{
 		Uuid: fmt.Sprintf("user-%d", rand.Intn(1000)),
 	}
 	messageClient := messageclient.NewClient(user, client)
@@ -38,7 +38,7 @@ func main() {
 	sendBuffer := make(chan string, 5)
 	go messageClient.Connect(reciveBuffer)
 	go messageClient.SendMessage(sendBuffer)
-	ui.SetUpUI(reciveBuffer, sendBuffer, messageClient)
+	ui.SetUpUI(reciveBuffer, sendBuffer, messageClient, user)
 
 	for {
 
