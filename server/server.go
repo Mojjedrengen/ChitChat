@@ -67,6 +67,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 			Message:  fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Uuid, currTime),
 			Error:    fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
 		}
+		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Uuid, currTime)
 		s.mu.Lock() //Same as other adminuser lock
 		s.ConnectedClients[AdminUser] <- connectedMsg
 		for _, msg := range s.MessageHistory {
@@ -248,6 +249,7 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 			Message:  fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Uuid, time),
 			Error:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
 		}
+		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Uuid, time)
 		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
 		s.ConnectedClients[AdminUser] <- disconnectMsg
 		s.mu.Unlock()
@@ -291,6 +293,7 @@ func bufferhandler(s *ChatServer) {
 
 		for _, msg := range messageBuffer {
 			fmt.Printf("<%v @ %v> %v\n", msg.User.Uuid, msg.UnixTime, msg.Message)
+			log.Printf("SERVER: Delivery from %v @ %v: %v", msg.User.Uuid, msg.UnixTime, msg.Message)
 			for user, ch := range s.ConnectedClientsOut {
 				if user == AdminUser {
 					continue
@@ -352,6 +355,7 @@ func newServer() *ChatServer {
 		if err := encoder.Encode(s.MessageHistory); err != nil {
 			panic(err)
 		}
+		log.Printf("SERVER: shutdown @ %v", time.Now().Format(time.DateTime))
 		os.Exit(0)
 	}()
 
@@ -359,7 +363,17 @@ func newServer() *ChatServer {
 }
 
 func main() {
+	logFile, err := os.OpenFile("server.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("failted to open file: %v", err)
+	}
+	defer logFile.Close()
+	log.SetOutput(logFile)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+
 	fmt.Printf("port: %v\n", *port)
+	log.Printf("SERVER: Startup listening on port %v @ %s", *port, time.Now().Format(time.DateTime))
+
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
