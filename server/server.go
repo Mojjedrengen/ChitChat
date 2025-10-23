@@ -64,6 +64,15 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 		}
 		s.mu.Lock() //Same as other adminuser lock
 		s.ConnectedClients[AdminUser] <- connectedMsg
+		for _, msg := range s.MessageHistory {
+			stream.Send(&pb.ConnectRespond{
+				StatusCode: &pb.ChatRespond{
+					StatusCode: 100,
+					Context:    "Broadcasting old messages",
+				},
+				Message: msg,
+			})
+		}
 		s.mu.Unlock()
 		for {
 			select {
