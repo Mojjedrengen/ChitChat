@@ -123,6 +123,7 @@ type Msg struct {
 	UnixTime      int64                  `protobuf:"varint,2,opt,name=UnixTime,proto3" json:"UnixTime,omitempty"`
 	Message       string                 `protobuf:"bytes,3,opt,name=Message,proto3" json:"Message,omitempty"`
 	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	LogicalTime   int32                  `protobuf:"varint,5,opt,name=LogicalTime,proto3" json:"LogicalTime,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -183,6 +184,13 @@ func (x *Msg) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *Msg) GetLogicalTime() int32 {
+	if x != nil {
+		return x.LogicalTime
+	}
+	return 0
 }
 
 type ConnectRespond struct {
@@ -299,12 +307,13 @@ const file_grpc_chitchat_proto_rawDesc = "" +
 	"\x04Uuid\x18\x01 \x01(\tR\x04Uuid\"M\n" +
 	"\rSimpleMessage\x12\"\n" +
 	"\x04User\x18\x01 \x01(\v2\x0e.chitchat.UserR\x04User\x12\x18\n" +
-	"\aMessage\x18\x02 \x01(\tR\aMessage\"u\n" +
+	"\aMessage\x18\x02 \x01(\tR\aMessage\"\x97\x01\n" +
 	"\x03Msg\x12\"\n" +
 	"\x04User\x18\x01 \x01(\v2\x0e.chitchat.UserR\x04User\x12\x1a\n" +
 	"\bUnixTime\x18\x02 \x01(\x03R\bUnixTime\x12\x18\n" +
 	"\aMessage\x18\x03 \x01(\tR\aMessage\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"p\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12 \n" +
+	"\vLogicalTime\x18\x05 \x01(\x05R\vLogicalTime\"p\n" +
 	"\x0eConnectRespond\x125\n" +
 	"\n" +
 	"StatusCode\x18\x01 \x01(\v2\x15.chitchat.ChatRespondR\n" +

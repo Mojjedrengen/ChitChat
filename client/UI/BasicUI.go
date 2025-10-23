@@ -12,19 +12,23 @@ import (
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
 )
 
+const ClearLine = "\033[2K\r"
+
 type BasicUI struct {
 	mc           *messageclient.MessageClient
 	reciveBuffer chan *chitchat.Msg
 	sendBuffer   chan string
 	helpMessage  string
+	username     *chitchat.User
 }
 
-func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageClient *messageclient.MessageClient) {
+func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageClient *messageclient.MessageClient, user *chitchat.User) {
 	UI := BasicUI{
 		mc:           messageClient,
 		reciveBuffer: reciveBuffer,
 		sendBuffer:   sendBuffer,
 		helpMessage:  "Write say {message} to write a message. Write Disconnect to disconnect from the server",
+		username:     user,
 	}
 	go UI.printer()
 	go UI.writer()
@@ -32,13 +36,15 @@ func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageCli
 
 func (UI *BasicUI) printer() {
 	for {
-		fmt.Print("> ")
+		fmt.Printf("<%s> ", UI.username.Uuid)
 		msg := <-UI.reciveBuffer
-		out := strings.Builder{}
-		out.WriteString("<")
 
+		if msg.User == UI.username {
+			continue
+		}
 		outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
-		fmt.Printf("<%s @ %s> %s\n", msg.User, outTime, msg.Message)
+		fmt.Printf(ClearLine)
+		fmt.Printf("<%s @ %s> %s\n", msg.User.Uuid, outTime, msg.Message)
 	}
 }
 
@@ -64,10 +70,10 @@ func (UI *BasicUI) writer() {
 			UI.mc.Disconenct()
 		} else if commands[0] == "say" && len(commands[1]) != 0 {
 			UI.sendBuffer <- commands[1]
-			fmt.Print("\n> ")
+			fmt.Printf("<%s> ", UI.username.Uuid)
 		} else {
 			fmt.Println(UI.helpMessage)
-			fmt.Print("> ")
+			fmt.Print("<&s> ", UI.username.Uuid)
 		}
 	}
 }
