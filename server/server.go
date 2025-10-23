@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	pb "github.com/Mojjedrengen/ChitChat/grpc"
@@ -18,6 +22,7 @@ import (
 
 var (
 	port = flag.Int("port", 50051, "The Server port")
+	file = flag.String("file", "data.json", "Path to the file to store chat messages")
 )
 
 type ChatServer struct {
@@ -310,7 +315,46 @@ func newServer() *ChatServer {
 		LastMessageIndex:           make(map[*pb.User]int),
 	}
 	s.ConnectedClients[AdminUser] = make(chan *pb.Msg, 10)
+	{ //Openens saved data
+		file, err := os.Open(*file)
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer file.Close()
+
+		var mh []*pb.Msg
+		decoder := json.NewDecoder(file)
+		if err := decoder.Decode(&mh); err != nil {
+			fmt.Println(err)
+		}
+		s.mu.Lock()
+		s.MessageHistory = mh
+		fmt.Println("OLD MESSAGES:")
+		for _, msg := range s.MessageHistory {
+			fmt.Printf("<%v @ %v> %v\n", msg.User.Uuid, msg.UnixTime, msg.Message)
+		}
+		s.mu.Unlock()
+	}
 	go bufferhandler(s)
+
+	go func() { //function for saving data
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		<-c
+		file, err := os.Create(*file)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+
+		s.mu.Lock()
+		encoder := json.NewEncoder(file)
+		if err := encoder.Encode(s.MessageHistory); err != nil {
+			panic(err)
+		}
+		os.Exit(0)
+	}()
+
 	return s
 }
 
