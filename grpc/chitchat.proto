@@ -24,6 +24,7 @@ message Msg {
   int64 UnixTime = 2;
   string Message = 3;
   string error = 4;
+  int32 LogicalTime = 5;
 }
 
 message ConnectRespond {
