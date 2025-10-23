@@ -2,10 +2,13 @@ package messageclient
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
@@ -17,15 +20,25 @@ type MessageClient struct {
 	messageLog     []*chitchat.ChatRespond
 	mu             sync.Mutex
 	client         chitchat.ChatClient
+	interrupt      chan (os.Signal)
 }
 
 func NewClient(user *chitchat.User, client chitchat.ChatClient) *MessageClient {
-	return &MessageClient{
+	returnClient := MessageClient{
 		messageHistroy: make([]*chitchat.Msg, 0),
 		messageLog:     make([]*chitchat.ChatRespond, 0),
 		user:           user,
 		client:         client,
+		interrupt:      make(chan os.Signal),
 	}
+	signal.Notify(returnClient.interrupt, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-returnClient.interrupt
+		fmt.Printf("\n")
+		returnClient.Disconenct()
+	}()
+
+	return &returnClient
 }
 
 func (messageClient *MessageClient) Connect(messageBuf chan<- *chitchat.Msg) {
