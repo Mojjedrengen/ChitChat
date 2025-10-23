@@ -12,6 +12,8 @@ import (
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
 )
 
+const ClearLine = "\033[2K\r"
+
 type BasicUI struct {
 	mc           *messageclient.MessageClient
 	reciveBuffer chan *chitchat.Msg
@@ -34,14 +36,15 @@ func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageCli
 
 func (UI *BasicUI) printer() {
 	for {
-		fmt.Printf("%s> ", UI.username.Uuid)
+		fmt.Printf("<%s> ", UI.username.Uuid)
 		msg := <-UI.reciveBuffer
 
 		if msg.User == UI.username {
 			continue
 		}
 		outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
-		fmt.Printf("<%s @ %s> %s\n", msg.User, outTime, msg.Message)
+		fmt.Printf(ClearLine)
+		fmt.Printf("<%s @ %s> %s\n", msg.User.Uuid, outTime, msg.Message)
 	}
 }
 
@@ -67,10 +70,10 @@ func (UI *BasicUI) writer() {
 			UI.mc.Disconenct()
 		} else if commands[0] == "say" && len(commands[1]) != 0 {
 			UI.sendBuffer <- commands[1]
-			fmt.Printf("%s> ", UI.username.Uuid)
+			fmt.Printf("<%s> ", UI.username.Uuid)
 		} else {
 			fmt.Println(UI.helpMessage)
-			fmt.Print("&s> ", UI.username.Uuid)
+			fmt.Print("<&s> ", UI.username.Uuid)
 		}
 	}
 }
