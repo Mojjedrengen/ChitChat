@@ -276,6 +276,7 @@ func bufferhandler(s *ChatServer) {
 		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
 
 		for _, msg := range messageBuffer {
+			fmt.Printf("<%v @ %v> %v\n", msg.User.Uuid, msg.UnixTime, msg.Message)
 			for user, ch := range s.ConnectedClientsOut {
 				if user == AdminUser {
 					continue
