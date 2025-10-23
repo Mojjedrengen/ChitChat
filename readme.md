@@ -1,10 +1,7 @@
 
 
 Missing features:
-Change from physical timestamp to logical time such as lamport clocks
-
-Clients must log all received broadcast messages with a logical timestamps and message
-
+Add Logical timestamps
 
 
 
