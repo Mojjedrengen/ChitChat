@@ -44,7 +44,8 @@ func (UI *BasicUI) printer() {
 		}
 		outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
 		fmt.Printf(ClearLine)
-		fmt.Printf("<%s @ %s> %s\n", msg.User.Uuid, outTime, msg.Message)
+		// Display logical timestamp alongside physical timestamp
+		fmt.Printf("<%s @ %s (L:%d)> %s\n", msg.User.Uuid, outTime, msg.LogicalTime, msg.Message)
 	}
 }
 

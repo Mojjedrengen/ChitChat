@@ -12,6 +12,7 @@ import (
 	"time"
 
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
+	"github.com/Mojjedrengen/ChitChat/util"
 )
 
 type MessageClient struct {
@@ -21,6 +22,7 @@ type MessageClient struct {
 	mu             sync.Mutex
 	client         chitchat.ChatClient
 	interrupt      chan (os.Signal)
+	lamportClock   *util.LamportClock
 }
 
 func NewClient(user *chitchat.User, client chitchat.ChatClient) *MessageClient {
@@ -30,6 +32,7 @@ func NewClient(user *chitchat.User, client chitchat.ChatClient) *MessageClient {
 		user:           user,
 		client:         client,
 		interrupt:      make(chan os.Signal),
+		lamportClock:   util.NewLamportClock(),
 	}
 	signal.Notify(returnClient.interrupt, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -68,6 +71,15 @@ func (messageClient *MessageClient) Connect(messageBuf chan<- *chitchat.Msg) {
 		if err != nil {
 			log.Fatalf("client.connect failed: %v", err)
 		}
+
+		if message.Message != nil {
+			messageClient.lamportClock.Update(message.Message.LogicalTime)
+			log.Printf("CLIENT - %s: Received message at Lamport time %d (updated to %d)", 
+				messageClient.user.Uuid, 
+				message.Message.LogicalTime, 
+				messageClient.lamportClock.GetTime())
+		}
+		
 		messageClient.mu.Lock()
 		messageClient.messageHistroy = append(messageClient.messageHistroy, message.Message)
 		messageClient.messageLog = append(messageClient.messageLog, message.StatusCode)
@@ -85,9 +97,14 @@ func (messageClient *MessageClient) SendMessage(messageChan <-chan string) {
 		log.Fatalf("Fail to establish send connection: %v", err)
 	}
 	for {
+		msgText := <-messageChan
+
+		logicalTime := messageClient.lamportClock.Tick()
+		log.Printf("CLIENT - %s: Sending message at Lamport time %d", messageClient.user.Uuid, logicalTime)
+		
 		msg := chitchat.SimpleMessage{
 			User:    messageClient.user,
-			Message: <-messageChan,
+			Message: msgText,
 		}
 		if err := stream.Send(&msg); err != nil {
 			log.Fatalf("Failed to send message: %v", err)
@@ -120,6 +137,9 @@ func (messageClient *MessageClient) Disconenct() {
 	if respond.StatusCode != 200 {
 		log.Fatalf("client.disconenct failed: %v", respond.Context)
 	} else {
+		log.Printf("CLIENT - %s: Disconnected at Lamport time %d", 
+			messageClient.user.Uuid, 
+			messageClient.lamportClock.GetTime())
 		os.Exit(0)
 	}
 }
