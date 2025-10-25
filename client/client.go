@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 
 	ui "github.com/Mojjedrengen/ChitChat/client/UI"
 	messageclient "github.com/Mojjedrengen/ChitChat/client/messageClient"
@@ -18,6 +19,13 @@ var (
 )
 
 func main() {
+	logFile, err := os.OpenFile("client.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("failted to open file: %v", err)
+	}
+	defer logFile.Close()
+	log.SetOutput(logFile)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	fmt.Println("hello world")
 
 	var opts []grpc.DialOption

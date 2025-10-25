@@ -35,6 +35,7 @@ type ChatServer struct {
 	DisconnectClientRespons    map[*pb.User](chan bool)
 	mu                         sync.Mutex // for LastMessageIndex
 	LastMessageIndex           map[*pb.User]int
+	lamportClock               *util.LamportClock
 }
 
 var AdminUser = &pb.User{
@@ -60,14 +61,18 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 		s.ConnectedClientsDisconnect[user] = make(chan bool, 2)
 		s.mu.Unlock()
 
+		logicalTime := s.lamportClock.Tick()
 		currTime := time.Now().Unix()
+		
 		connectedMsg := &pb.Msg{
-			User:     AdminUser,
-			UnixTime: currTime,
-			Message:  fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Uuid, currTime),
-			Error:    fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
+			User:        AdminUser,
+			UnixTime:    currTime,
+			LogicalTime: logicalTime,
+			Message:     fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Uuid, logicalTime),
+			Error:       fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
 		}
-		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Uuid, currTime)
+		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Uuid, logicalTime)
+		
 		s.mu.Lock() //Same as other adminuser lock
 		s.ConnectedClients[AdminUser] <- connectedMsg
 		for _, msg := range s.MessageHistory {
@@ -90,10 +95,11 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 							Context:    "Connection is now Disconnected",
 						},
 						Message: &pb.Msg{
-							User:     AdminUser,
-							UnixTime: time.Now().Unix(),
-							Message:  "Client is disconnected",
-							Error:    "Disconnected",
+							User:        AdminUser,
+							UnixTime:    time.Now().Unix(),
+							LogicalTime: s.lamportClock.GetTime(),
+							Message:     "Client is disconnected",
+							Error:       "Disconnected",
 						},
 					})
 					s.DisconnectClientRespons[user] <- true
@@ -158,11 +164,17 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 	//Process the first message that was used for identification
 	if first.Message != "" {
 		timestamp := time.Now().Unix()
+		logicalTime := s.lamportClock.Tick()
 
 		if len(first.Message) >= 128 {
 			stream.Send(&pb.ChatRespond{StatusCode: 401, Context: "ERROR: ILLEGAL LENGTH"})
 		} else {
-			sendMsg := &pb.Msg{User: storedUser, Message: first.Message, UnixTime: timestamp}
+			sendMsg := &pb.Msg{
+				User:        storedUser,
+				Message:     first.Message,
+				UnixTime:    timestamp,
+				LogicalTime: logicalTime,
+			}
 			s.ConnectedClients[storedUser] <- sendMsg
 			stream.Send(&pb.ChatRespond{StatusCode: 200, Context: "Message Send"})
 		}
@@ -191,7 +203,14 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 			continue
 		}
 
-		sendMsg := &pb.Msg{User: storedUser, Message: message, UnixTime: timestamp}
+		logicalTime := s.lamportClock.Tick()
+		
+		sendMsg := &pb.Msg{
+			User:        storedUser,
+			Message:     message,
+			UnixTime:    timestamp,
+			LogicalTime: logicalTime,
+		}
 		clientCh <- sendMsg
 
 		stream.Send(&pb.ChatRespond{StatusCode: 200, Context: "Message Send"})
@@ -242,14 +261,18 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		delete(s.LastMessageIndex, user)
 		s.mu.Unlock()
 
+		// Increment Lamport clock for disconnect event
+		logicalTime := s.lamportClock.Tick()
 		time := time.Now().Unix()
+		
 		disconnectMsg := &pb.Msg{
-			User:     AdminUser,
-			UnixTime: time,
-			Message:  fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Uuid, time),
-			Error:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
+			User:        AdminUser,
+			UnixTime:    time,
+			LogicalTime: logicalTime,
+			Message:     fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Uuid, logicalTime),
+			Error:       fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
 		}
-		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Uuid, time)
+		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Uuid, logicalTime)
 		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
 		s.ConnectedClients[AdminUser] <- disconnectMsg
 		s.mu.Unlock()
@@ -292,8 +315,8 @@ func bufferhandler(s *ChatServer) {
 		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
 
 		for _, msg := range messageBuffer {
-			fmt.Printf("<%v @ %v> %v\n", msg.User.Uuid, msg.UnixTime, msg.Message)
-			log.Printf("SERVER: Delivery from %v @ %v: %v", msg.User.Uuid, msg.UnixTime, msg.Message)
+			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
+			log.Printf("SERVER: Delivery from %v @ %v (Lamport: %v): %v", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
 			for user, ch := range s.ConnectedClientsOut {
 				if user == AdminUser {
 					continue
@@ -316,6 +339,7 @@ func newServer() *ChatServer {
 		ConnectedClientsDisconnect: make(map[*pb.User]chan bool),
 		DisconnectClientRespons:    make(map[*pb.User]chan bool),
 		LastMessageIndex:           make(map[*pb.User]int),
+		lamportClock:               util.NewLamportClock(),
 	}
 	s.ConnectedClients[AdminUser] = make(chan *pb.Msg, 10)
 	{ //Openens saved data
@@ -334,7 +358,10 @@ func newServer() *ChatServer {
 		s.MessageHistory = mh
 		fmt.Println("OLD MESSAGES:")
 		for _, msg := range s.MessageHistory {
-			fmt.Printf("<%v @ %v> %v\n", msg.User.Uuid, msg.UnixTime, msg.Message)
+			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
+			if msg.LogicalTime > s.lamportClock.GetTime() {
+				s.lamportClock.Update(msg.LogicalTime)
+			}
 		}
 		s.mu.Unlock()
 	}
@@ -355,7 +382,7 @@ func newServer() *ChatServer {
 		if err := encoder.Encode(s.MessageHistory); err != nil {
 			panic(err)
 		}
-		log.Printf("SERVER: shutdown @ %v", time.Now().Format(time.DateTime))
+		log.Printf("SERVER: shutdown @ %v (Lamport: %v)", time.Now().Format(time.DateTime), s.lamportClock.GetTime())
 		os.Exit(0)
 	}()
 
