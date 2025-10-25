@@ -39,8 +39,8 @@ func (UI *BasicUI) printer() {
 		fmt.Printf("<%s> ", UI.username.Uuid)
 		msg := <-UI.reciveBuffer
 
-		if msg.User == UI.username {
-			continue
+		if msg.User.Uuid == UI.username.Uuid {
+			fmt.Printf("\033[F%s", ClearLine)
 		}
 		outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
 		fmt.Printf(ClearLine)
@@ -78,3 +78,4 @@ func (UI *BasicUI) writer() {
 		}
 	}
 }
+

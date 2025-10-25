@@ -84,9 +84,9 @@ func (messageClient *MessageClient) Connect(messageBuf chan<- *chitchat.Msg) {
 		messageClient.messageHistroy = append(messageClient.messageHistroy, message.Message)
 		messageClient.messageLog = append(messageClient.messageLog, message.StatusCode)
 		messageClient.mu.Unlock()
-		if message.Message.User.Uuid == messageClient.user.Uuid {
-			continue
-		}
+		//if message.Message.User.Uuid == messageClient.user.Uuid {
+		//	continue
+		//}
 		messageBuf <- message.Message
 	}
 }
