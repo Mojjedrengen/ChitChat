@@ -74,12 +74,12 @@ func (messageClient *MessageClient) Connect(messageBuf chan<- *chitchat.Msg) {
 
 		if message.Message != nil {
 			messageClient.lamportClock.Update(message.Message.LogicalTime)
-			log.Printf("CLIENT - %s: Received message at Lamport time %d (updated to %d)", 
-				messageClient.user.Uuid, 
-				message.Message.LogicalTime, 
+			log.Printf("CLIENT - %s: Received message at Lamport time %d (updated to %d)",
+				messageClient.user.Uuid,
+				message.Message.LogicalTime,
 				messageClient.lamportClock.GetTime())
 		}
-		
+
 		messageClient.mu.Lock()
 		messageClient.messageHistroy = append(messageClient.messageHistroy, message.Message)
 		messageClient.messageLog = append(messageClient.messageLog, message.StatusCode)
@@ -101,7 +101,7 @@ func (messageClient *MessageClient) SendMessage(messageChan <-chan string) {
 
 		logicalTime := messageClient.lamportClock.Tick()
 		log.Printf("CLIENT - %s: Sending message at Lamport time %d", messageClient.user.Uuid, logicalTime)
-		
+
 		msg := chitchat.SimpleMessage{
 			User:    messageClient.user,
 			Message: msgText,
@@ -137,9 +137,11 @@ func (messageClient *MessageClient) Disconenct() {
 	if respond.StatusCode != 200 {
 		log.Fatalf("client.disconenct failed: %v", respond.Context)
 	} else {
-		log.Printf("CLIENT - %s: Disconnected at Lamport time %d", 
-			messageClient.user.Uuid, 
+		log.Printf("CLIENT - %s: Disconnected at Lamport time %d",
+			messageClient.user.Uuid,
 			messageClient.lamportClock.GetTime())
+		fmt.Print("\033[2K\r")
 		os.Exit(0)
 	}
 }
+

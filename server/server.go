@@ -346,14 +346,14 @@ func newServer() *ChatServer {
 	{ //Openens saved data
 		file, err := os.OpenFile(fmt.Sprintf("%s/server/%s", *dataFolder, *file), os.O_CREATE|os.O_RDONLY, 0666)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		defer file.Close()
 
 		var mh []*pb.Msg
 		decoder := json.NewDecoder(file)
 		if err := decoder.Decode(&mh); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		s.mu.Lock()
 		s.MessageHistory = mh
@@ -365,6 +365,7 @@ func newServer() *ChatServer {
 			}
 		}
 		s.mu.Unlock()
+		fmt.Println("OLD MESSAGES DONE")
 	}
 	go bufferhandler(s)
 
@@ -374,16 +375,17 @@ func newServer() *ChatServer {
 		<-c
 		file, err := os.OpenFile(fmt.Sprintf("%s/server/%s", *dataFolder, *file), os.O_CREATE|os.O_WRONLY, 0666)
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		defer file.Close()
 
 		s.mu.Lock()
 		encoder := json.NewEncoder(file)
 		if err := encoder.Encode(s.MessageHistory); err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		log.Printf("SERVER: shutdown @ %v (Lamport: %v)", time.Now().Format(time.DateTime), s.lamportClock.GetTime())
+		fmt.Print("\n")
 		os.Exit(0)
 	}()
 
