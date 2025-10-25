@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	port = flag.Int("port", 50051, "The Server port")
-	file = flag.String("file", "data.json", "Path to the file to store chat messages")
+	port       = flag.Int("port", 50051, "The Server port")
+	file       = flag.String("file", "data.json", "Path to the file to store chat messages")
+	dataFolder = flag.String("folder", "data", "the folder for where the log is saved")
 )
 
 type ChatServer struct {
@@ -63,7 +64,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 
 		logicalTime := s.lamportClock.Tick()
 		currTime := time.Now().Unix()
-		
+
 		connectedMsg := &pb.Msg{
 			User:        AdminUser,
 			UnixTime:    currTime,
@@ -72,7 +73,7 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 			Error:       fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
 		}
 		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Uuid, logicalTime)
-		
+
 		s.mu.Lock() //Same as other adminuser lock
 		s.ConnectedClients[AdminUser] <- connectedMsg
 		for _, msg := range s.MessageHistory {
@@ -204,7 +205,7 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		}
 
 		logicalTime := s.lamportClock.Tick()
-		
+
 		sendMsg := &pb.Msg{
 			User:        storedUser,
 			Message:     message,
@@ -264,7 +265,7 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		// Increment Lamport clock for disconnect event
 		logicalTime := s.lamportClock.Tick()
 		time := time.Now().Unix()
-		
+
 		disconnectMsg := &pb.Msg{
 			User:        AdminUser,
 			UnixTime:    time,
@@ -343,7 +344,7 @@ func newServer() *ChatServer {
 	}
 	s.ConnectedClients[AdminUser] = make(chan *pb.Msg, 10)
 	{ //Openens saved data
-		file, err := os.Open(*file)
+		file, err := os.OpenFile(fmt.Sprintf("%s/server/%s", *dataFolder, *file), os.O_CREATE|os.O_RDONLY, 0666)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -371,7 +372,7 @@ func newServer() *ChatServer {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-		file, err := os.Create(*file)
+		file, err := os.OpenFile(fmt.Sprintf("%s/server/%s", *dataFolder, *file), os.O_CREATE|os.O_WRONLY, 0666)
 		if err != nil {
 			panic(err)
 		}
@@ -390,7 +391,10 @@ func newServer() *ChatServer {
 }
 
 func main() {
-	logFile, err := os.OpenFile("server.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err := os.MkdirAll(fmt.Sprintf("%s/server", *dataFolder), os.ModePerm); err != nil {
+		log.Fatalf("failed to creat dirr: %v", err)
+	}
+	logFile, err := os.OpenFile(fmt.Sprintf("%s/server/server.log", *dataFolder), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("failted to open file: %v", err)
 	}
@@ -411,3 +415,4 @@ func main() {
 	pb.RegisterChatServer(grpcServer, newServer())
 	grpcServer.Serve(lis)
 }
+
