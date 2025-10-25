@@ -33,3 +33,4 @@ go.work.sum
 
 data.json
 server.log
+client.log
