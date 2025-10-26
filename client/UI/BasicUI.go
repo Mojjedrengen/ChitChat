@@ -56,7 +56,7 @@ func (UI *BasicUI) printer() {
 
 func printMsg(msg *chitchat.Msg, colour termcommands.TermComands) {
 	outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
-	fmt.Printf("%s<%s @ %s (L:%d)> %s%s\n", colour, msg.User.Uuid, outTime, msg.LogicalTime, msg.Message, termcommands.ResetColour)
+	fmt.Printf("%s<%s @ %s (L:%d)> %s%s\n", colour, msg.User.Name, outTime, msg.LogicalTime, msg.Message, termcommands.ResetColour)
 }
 
 func (UI *BasicUI) writer() {

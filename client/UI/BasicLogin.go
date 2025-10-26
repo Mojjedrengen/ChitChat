@@ -6,6 +6,7 @@ import (
 
 	termcommands "github.com/Mojjedrengen/ChitChat/client/Termcommands"
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
+	"github.com/google/uuid"
 )
 
 func BasicLogin() *chitchat.User {
@@ -17,7 +18,8 @@ func BasicLogin() *chitchat.User {
 		log.Fatalf("failed to get username: %v", err)
 	}
 	user := &chitchat.User{
-		Uuid: username,
+		Uuid: uuid.NewString(),
+		Name: username,
 	}
 	fmt.Printf("%s", termcommands.Clear)
 	return user
