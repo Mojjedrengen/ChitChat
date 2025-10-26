@@ -26,6 +26,9 @@ To use this wiret `{program} -{flag} {value}`
 
 Missing features:
 
-Bugs:
+# Bugs:
+The client does not read Windows termination signals, can't figure out why and how to fix it, so the the client can't use the disconnect funtion of Windows.
+This means that the server does not get the message that the client is disconnected and so it does not brodcast it.
+To mitigate this run the program on Linux
 
 used [GRPC.Go.Basic_turtorial](https://grpc.io/docs/languages/go/basics/) as a refrence to create the project
