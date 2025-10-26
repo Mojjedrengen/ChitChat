@@ -24,7 +24,7 @@ To use this wiret `{program} -{flag} {value}`
 
 **Table 2:** Servers flags
 
-Missing features:
+# Missing features:
 
 # Bugs:
 The client does not read Windows termination signals, can't figure out why and how to fix it, so the the client can't use the disconnect funtion of Windows.
