@@ -12,7 +12,16 @@ import (
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
 )
 
-const ClearLine = "\033[2K\r"
+type TermComands string
+
+const (
+	ClearLine        TermComands = "\033[2K\r"
+	LineUp           TermComands = "\033[F"
+	OwnTextColour    TermComands = "\033[38;5;46;48;5;0m"
+	OtherTextColour  TermComands = "\033[38;5;45;48;5;0m"
+	ServerTextColour TermComands = "\033[38;5;214;48;5;0m"
+	ResetColour      TermComands = "\033[39m\033[49m"
+)
 
 type BasicUI struct {
 	mc           *messageclient.MessageClient
@@ -36,17 +45,28 @@ func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageCli
 
 func (UI *BasicUI) printer() {
 	for {
-		fmt.Printf("<%s> ", UI.username.Uuid)
+		fmt.Printf("%s<%s> ", ResetColour, UI.username.Uuid)
 		msg := <-UI.reciveBuffer
 
 		if msg.User.Uuid == UI.username.Uuid {
-			fmt.Printf("\033[F%s", ClearLine)
+			fmt.Printf("%s%s", LineUp, ClearLine)
 		}
-		outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
-		fmt.Printf(ClearLine)
+		fmt.Printf("%s", ClearLine)
 		// Display logical timestamp alongside physical timestamp
-		fmt.Printf("<%s @ %s (L:%d)> %s\n", msg.User.Uuid, outTime, msg.LogicalTime, msg.Message)
+		switch msg.User.Uuid {
+		case UI.username.Uuid:
+			printMsg(msg, OwnTextColour)
+		case "System":
+			printMsg(msg, ServerTextColour)
+		default:
+			printMsg(msg, OtherTextColour)
+		}
 	}
+}
+
+func printMsg(msg *chitchat.Msg, colour TermComands) {
+	outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
+	fmt.Printf("%s<%s @ %s (L:%d)> %s%s\n", colour, msg.User.Uuid, outTime, msg.LogicalTime, msg.Message, ResetColour)
 }
 
 func (UI *BasicUI) writer() {
@@ -78,4 +98,3 @@ func (UI *BasicUI) writer() {
 		}
 	}
 }
-
