@@ -27,6 +27,5 @@ To use this wiret `{program} -{flag} {value}`
 Missing features:
 
 Bugs:
-Restoring of old term is a bit funky
 
 used [GRPC.Go.Basic_turtorial](https://grpc.io/docs/languages/go/basics/) as a refrence to create the project
