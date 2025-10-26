@@ -41,6 +41,7 @@ type ChatServer struct {
 
 var AdminUser = &pb.User{
 	Uuid: "System",
+	Name: "System",
 }
 
 func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer) error {
@@ -69,10 +70,10 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 			User:        AdminUser,
 			UnixTime:    currTime,
 			LogicalTime: logicalTime,
-			Message:     fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Uuid, logicalTime),
-			Error:       fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
+			Message:     fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Name, logicalTime),
+			Error:       fmt.Sprintf("participant %s have succesfully joined chat", user.Name),
 		}
-		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Uuid, logicalTime)
+		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Name, logicalTime)
 
 		s.mu.Lock() //Same as other adminuser lock
 		s.ConnectedClients[AdminUser] <- connectedMsg
@@ -270,17 +271,17 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 			User:        AdminUser,
 			UnixTime:    time,
 			LogicalTime: logicalTime,
-			Message:     fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Uuid, logicalTime),
-			Error:       fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
+			Message:     fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Name, logicalTime),
+			Error:       fmt.Sprintf("participant %s have succesfully left chat", user.Name),
 		}
-		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Uuid, logicalTime)
+		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Name, logicalTime)
 		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
 		s.ConnectedClients[AdminUser] <- disconnectMsg
 		s.mu.Unlock()
 
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
-			Context:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
+			Context:    fmt.Sprintf("participant %s have succesfully left chat", user.Name),
 		}
 
 		return disconnectRespond, nil
@@ -316,8 +317,8 @@ func bufferhandler(s *ChatServer) {
 		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
 
 		for _, msg := range messageBuffer {
-			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
-			log.Printf("SERVER: Delivery from %v @ %v (Lamport: %v): %v", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
+			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Name, msg.UnixTime, msg.LogicalTime, msg.Message)
+			log.Printf("SERVER: Delivery from %v @ %v (Lamport: %v): %v", msg.User.Name, msg.UnixTime, msg.LogicalTime, msg.Message)
 			for user, ch := range s.ConnectedClientsOut {
 				if user == AdminUser {
 					continue
@@ -359,7 +360,7 @@ func newServer() *ChatServer {
 		s.MessageHistory = mh
 		fmt.Println("OLD MESSAGES:")
 		for _, msg := range s.MessageHistory {
-			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
+			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Name, msg.UnixTime, msg.LogicalTime, msg.Message)
 			if msg.LogicalTime > s.lamportClock.GetTime() {
 				s.lamportClock.Update(msg.LogicalTime)
 			}
