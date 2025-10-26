@@ -35,7 +35,8 @@ func NewClient(user *chitchat.User, client chitchat.ChatClient) *MessageClient {
 		interrupt:      make(chan os.Signal),
 		lamportClock:   util.NewLamportClock(),
 	}
-	signal.Notify(returnClient.interrupt, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	signal.Notify(returnClient.interrupt, os.Kill, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-returnClient.interrupt
 		fmt.Printf("\n")
