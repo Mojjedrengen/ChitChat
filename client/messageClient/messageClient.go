@@ -141,7 +141,7 @@ func (messageClient *MessageClient) Disconenct() {
 		log.Printf("CLIENT - %s: Disconnected at Lamport time %d",
 			messageClient.user.Uuid,
 			messageClient.lamportClock.GetTime())
-		fmt.Printf("%s%s", termcommands.Restore, termcommands.RestoreCursorSCO)
+		fmt.Printf("%s%s%s", termcommands.Clear, termcommands.Restore, termcommands.RestoreCursorSCO)
 		os.Exit(0)
 	}
 }
