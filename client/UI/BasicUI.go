@@ -79,22 +79,7 @@ func (UI *BasicUI) writer() {
 		input = strings.TrimRight(input, "\n")
 		input = strings.TrimSpace(input)
 
-		commands := strings.SplitN(input, " ", 2)
-		if len(commands) < 2 {
-			commands = append(commands, "")
-		}
-		commands[1] = strings.TrimSpace(commands[1])
-		commands = append(commands, "") //make shure index is not out of bounds
-		commands = append(commands, "")
-
-		if commands[0] == "Disconnect" {
-			UI.mc.Disconenct()
-		} else if commands[0] == "say" && len(commands[1]) != 0 {
-			UI.sendBuffer <- commands[1]
-			fmt.Printf("<%s> ", UI.username.Uuid)
-		} else {
-			fmt.Println(UI.helpMessage)
-			fmt.Print("<&s> ", UI.username.Uuid)
-		}
+		UI.sendBuffer <- input
+		fmt.Printf("<%s> ", UI.username.Uuid)
 	}
 }
