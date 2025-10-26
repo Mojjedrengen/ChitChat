@@ -22,7 +22,6 @@ type MessageClient struct {
 	messageLog     []*chitchat.ChatRespond
 	mu             sync.Mutex
 	client         chitchat.ChatClient
-	interrupt      chan (os.Signal)
 	lamportClock   *util.LamportClock
 }
 
@@ -32,13 +31,12 @@ func NewClient(user *chitchat.User, client chitchat.ChatClient) *MessageClient {
 		messageLog:     make([]*chitchat.ChatRespond, 0),
 		user:           user,
 		client:         client,
-		interrupt:      make(chan os.Signal),
 		lamportClock:   util.NewLamportClock(),
 	}
-
-	signal.Notify(returnClient.interrupt, os.Kill, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	sighandler := make(chan os.Signal, 3)
+	signal.Notify(sighandler, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
-		<-returnClient.interrupt
+		<-sighandler
 		fmt.Printf("\n")
 		returnClient.Disconenct()
 	}()
