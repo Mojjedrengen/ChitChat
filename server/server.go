@@ -251,6 +251,22 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		}
 		s.mu.Unlock()
 
+		// Increment Lamport clock for disconnect event
+		logicalTime := s.lamportClock.Tick()
+		time := time.Now().Unix()
+
+		disconnectMsg := &pb.Msg{
+			User:        AdminUser,
+			UnixTime:    time,
+			LogicalTime: logicalTime,
+			Message:     fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Name, logicalTime),
+			Error:       fmt.Sprintf("participant %s has succesfully left chat", user.Name),
+		}
+		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Name, logicalTime)
+		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
+		s.ConnectedClients[AdminUser] <- disconnectMsg
+		s.mu.Unlock()
+
 		<-s.DisconnectClientRespons[user]
 
 		s.mu.Lock()
@@ -263,25 +279,9 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		delete(s.LastMessageIndex, user)
 		s.mu.Unlock()
 
-		// Increment Lamport clock for disconnect event
-		logicalTime := s.lamportClock.Tick()
-		time := time.Now().Unix()
-
-		disconnectMsg := &pb.Msg{
-			User:        AdminUser,
-			UnixTime:    time,
-			LogicalTime: logicalTime,
-			Message:     fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Name, logicalTime),
-			Error:       fmt.Sprintf("participant %s have succesfully left chat", user.Name),
-		}
-		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Name, logicalTime)
-		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
-		s.ConnectedClients[AdminUser] <- disconnectMsg
-		s.mu.Unlock()
-
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
-			Context:    fmt.Sprintf("participant %s have succesfully left chat", user.Name),
+			Context:    fmt.Sprintf("participant %s has succesfully left chat", user.Name),
 		}
 
 		return disconnectRespond, nil
