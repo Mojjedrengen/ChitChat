@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	port = flag.Int("port", 50051, "The Server port")
-	file = flag.String("file", "data.json", "Path to the file to store chat messages")
+	port       = flag.Int("port", 50051, "The Server port")
+	file       = flag.String("file", "data.json", "The file to store chat messages minus path")
+	dataFolder = flag.String("folder", "data", "the folder for where the log is saved")
 )
 
 type ChatServer struct {
@@ -40,6 +41,7 @@ type ChatServer struct {
 
 var AdminUser = &pb.User{
 	Uuid: "System",
+	Name: "System",
 }
 
 func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer) error {
@@ -63,16 +65,16 @@ func (s *ChatServer) Connect(msg *pb.SimpleMessage, stream pb.Chat_ConnectServer
 
 		logicalTime := s.lamportClock.Tick()
 		currTime := time.Now().Unix()
-		
+
 		connectedMsg := &pb.Msg{
 			User:        AdminUser,
 			UnixTime:    currTime,
 			LogicalTime: logicalTime,
-			Message:     fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Uuid, logicalTime),
-			Error:       fmt.Sprintf("participant %s have succesfully joined chat", user.Uuid),
+			Message:     fmt.Sprintf("participant %s joined Chit Chat at logical time %d", user.Name, logicalTime),
+			Error:       fmt.Sprintf("participant %s have succesfully joined chat", user.Name),
 		}
-		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Uuid, logicalTime)
-		
+		log.Printf("CLIENT - %s Connect joined at logical time %v", user.Name, logicalTime)
+
 		s.mu.Lock() //Same as other adminuser lock
 		s.ConnectedClients[AdminUser] <- connectedMsg
 		for _, msg := range s.MessageHistory {
@@ -204,7 +206,7 @@ func (s *ChatServer) OnGoingChat(stream pb.Chat_OnGoingChatServer) error {
 		}
 
 		logicalTime := s.lamportClock.Tick()
-		
+
 		sendMsg := &pb.Msg{
 			User:        storedUser,
 			Message:     message,
@@ -249,6 +251,22 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		}
 		s.mu.Unlock()
 
+		// Increment Lamport clock for disconnect event
+		logicalTime := s.lamportClock.Tick()
+		time := time.Now().Unix()
+
+		disconnectMsg := &pb.Msg{
+			User:        AdminUser,
+			UnixTime:    time,
+			LogicalTime: logicalTime,
+			Message:     fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Name, logicalTime),
+			Error:       fmt.Sprintf("participant %s has succesfully left chat", user.Name),
+		}
+		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Name, logicalTime)
+		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
+		s.ConnectedClients[AdminUser] <- disconnectMsg
+		s.mu.Unlock()
+
 		<-s.DisconnectClientRespons[user]
 
 		s.mu.Lock()
@@ -261,25 +279,9 @@ func (s *ChatServer) Disconnect(ctx context.Context, msg *pb.SimpleMessage) (*pb
 		delete(s.LastMessageIndex, user)
 		s.mu.Unlock()
 
-		// Increment Lamport clock for disconnect event
-		logicalTime := s.lamportClock.Tick()
-		time := time.Now().Unix()
-		
-		disconnectMsg := &pb.Msg{
-			User:        AdminUser,
-			UnixTime:    time,
-			LogicalTime: logicalTime,
-			Message:     fmt.Sprintf("participant %s left Chit Chat at logical time %d", user.Uuid, logicalTime),
-			Error:       fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
-		}
-		log.Printf("CLIENT - %s Disconnect left at logical time %v", user.Uuid, logicalTime)
-		s.mu.Lock() //keep lock here in case adminuser gets removed from map whilst sending
-		s.ConnectedClients[AdminUser] <- disconnectMsg
-		s.mu.Unlock()
-
 		disconnectRespond := &pb.ChatRespond{
 			StatusCode: 200,
-			Context:    fmt.Sprintf("participant %s have succesfully left chat", user.Uuid),
+			Context:    fmt.Sprintf("participant %s has succesfully left chat", user.Name),
 		}
 
 		return disconnectRespond, nil
@@ -315,8 +317,8 @@ func bufferhandler(s *ChatServer) {
 		s.MessageHistory = append(s.MessageHistory, messageBuffer...)
 
 		for _, msg := range messageBuffer {
-			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
-			log.Printf("SERVER: Delivery from %v @ %v (Lamport: %v): %v", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
+			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Name, msg.UnixTime, msg.LogicalTime, msg.Message)
+			log.Printf("SERVER: Delivery from %v @ %v (Lamport: %v): %v", msg.User.Name, msg.UnixTime, msg.LogicalTime, msg.Message)
 			for user, ch := range s.ConnectedClientsOut {
 				if user == AdminUser {
 					continue
@@ -343,27 +345,28 @@ func newServer() *ChatServer {
 	}
 	s.ConnectedClients[AdminUser] = make(chan *pb.Msg, 10)
 	{ //Openens saved data
-		file, err := os.Open(*file)
+		file, err := os.OpenFile(fmt.Sprintf("%s/server/%s", *dataFolder, *file), os.O_CREATE|os.O_RDONLY, 0666)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		defer file.Close()
 
 		var mh []*pb.Msg
 		decoder := json.NewDecoder(file)
 		if err := decoder.Decode(&mh); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		s.mu.Lock()
 		s.MessageHistory = mh
 		fmt.Println("OLD MESSAGES:")
 		for _, msg := range s.MessageHistory {
-			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Uuid, msg.UnixTime, msg.LogicalTime, msg.Message)
+			fmt.Printf("<%v @ %v (L:%v)> %v\n", msg.User.Name, msg.UnixTime, msg.LogicalTime, msg.Message)
 			if msg.LogicalTime > s.lamportClock.GetTime() {
 				s.lamportClock.Update(msg.LogicalTime)
 			}
 		}
 		s.mu.Unlock()
+		fmt.Println("OLD MESSAGES DONE")
 	}
 	go bufferhandler(s)
 
@@ -371,18 +374,19 @@ func newServer() *ChatServer {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-		file, err := os.Create(*file)
+		file, err := os.OpenFile(fmt.Sprintf("%s/server/%s", *dataFolder, *file), os.O_CREATE|os.O_WRONLY, 0666)
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		defer file.Close()
 
 		s.mu.Lock()
 		encoder := json.NewEncoder(file)
 		if err := encoder.Encode(s.MessageHistory); err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		log.Printf("SERVER: shutdown @ %v (Lamport: %v)", time.Now().Format(time.DateTime), s.lamportClock.GetTime())
+		fmt.Print("\n")
 		os.Exit(0)
 	}()
 
@@ -390,7 +394,11 @@ func newServer() *ChatServer {
 }
 
 func main() {
-	logFile, err := os.OpenFile("server.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	flag.Parse()
+	if err := os.MkdirAll(fmt.Sprintf("%s/server", *dataFolder), os.ModePerm); err != nil {
+		log.Fatalf("failed to creat dirr: %v", err)
+	}
+	logFile, err := os.OpenFile(fmt.Sprintf("%s/server/server.log", *dataFolder), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("failted to open file: %v", err)
 	}

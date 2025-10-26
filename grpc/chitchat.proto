@@ -12,6 +12,7 @@ service chat {
 
 message User {
   string Uuid = 1;
+  string Name = 2;
 }
 
 message SimpleMessage {
