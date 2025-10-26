@@ -35,7 +35,7 @@ func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageCli
 
 func (UI *BasicUI) printer() {
 	for {
-		fmt.Printf("%s<%s> ", termcommands.ResetColour, UI.username.Uuid)
+		fmt.Printf("%s<%s> ", termcommands.ResetColour, UI.username.Name)
 		msg := <-UI.reciveBuffer
 
 		if msg.User.Uuid == UI.username.Uuid {
@@ -70,6 +70,6 @@ func (UI *BasicUI) writer() {
 		input = strings.TrimSpace(input)
 
 		UI.sendBuffer <- input
-		fmt.Printf("<%s> ", UI.username.Uuid)
+		fmt.Printf("<%s> ", UI.username.Name)
 	}
 }
