@@ -22,7 +22,7 @@ import (
 
 var (
 	port       = flag.Int("port", 50051, "The Server port")
-	file       = flag.String("file", "data.json", "Path to the file to store chat messages")
+	file       = flag.String("file", "data.json", "The file to store chat messages minus path")
 	dataFolder = flag.String("folder", "data", "the folder for where the log is saved")
 )
 
@@ -393,6 +393,7 @@ func newServer() *ChatServer {
 }
 
 func main() {
+	flag.Parse()
 	if err := os.MkdirAll(fmt.Sprintf("%s/server", *dataFolder), os.ModePerm); err != nil {
 		log.Fatalf("failed to creat dirr: %v", err)
 	}
@@ -417,4 +418,3 @@ func main() {
 	pb.RegisterChatServer(grpcServer, newServer())
 	grpcServer.Serve(lis)
 }
-

@@ -19,6 +19,7 @@ var (
 )
 
 func main() {
+	flag.Parse()
 	user := ui.BasicLogin()
 	username := user.Uuid
 	if err := os.MkdirAll(fmt.Sprintf("%s/%s", *dataFolder, username), os.ModePerm); err != nil {
