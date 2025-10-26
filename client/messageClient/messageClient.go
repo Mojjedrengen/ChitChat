@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	termcommands "github.com/Mojjedrengen/ChitChat/client/Termcommands"
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
 	"github.com/Mojjedrengen/ChitChat/util"
 )
@@ -140,8 +141,7 @@ func (messageClient *MessageClient) Disconenct() {
 		log.Printf("CLIENT - %s: Disconnected at Lamport time %d",
 			messageClient.user.Uuid,
 			messageClient.lamportClock.GetTime())
-		fmt.Print("\033[2K\r")
+		fmt.Printf("%s%s", termcommands.Restore, termcommands.RestoreCursorSCO)
 		os.Exit(0)
 	}
 }
-

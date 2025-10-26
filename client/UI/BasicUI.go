@@ -8,19 +8,9 @@ import (
 	"strings"
 	"time"
 
+	termcommands "github.com/Mojjedrengen/ChitChat/client/Termcommands"
 	messageclient "github.com/Mojjedrengen/ChitChat/client/messageClient"
 	chitchat "github.com/Mojjedrengen/ChitChat/grpc"
-)
-
-type TermComands string
-
-const (
-	ClearLine        TermComands = "\033[2K\r"
-	LineUp           TermComands = "\033[F"
-	OwnTextColour    TermComands = "\033[38;5;46;48;5;0m"
-	OtherTextColour  TermComands = "\033[38;5;45;48;5;0m"
-	ServerTextColour TermComands = "\033[38;5;214;48;5;0m"
-	ResetColour      TermComands = "\033[39m\033[49m"
 )
 
 type BasicUI struct {
@@ -45,28 +35,28 @@ func SetUpUI(reciveBuffer chan *chitchat.Msg, sendBuffer chan string, messageCli
 
 func (UI *BasicUI) printer() {
 	for {
-		fmt.Printf("%s<%s> ", ResetColour, UI.username.Uuid)
+		fmt.Printf("%s<%s> ", termcommands.ResetColour, UI.username.Uuid)
 		msg := <-UI.reciveBuffer
 
 		if msg.User.Uuid == UI.username.Uuid {
-			fmt.Printf("%s%s", LineUp, ClearLine)
+			fmt.Printf("%s%s", termcommands.LineUp, termcommands.ClearLine)
 		}
-		fmt.Printf("%s", ClearLine)
+		fmt.Printf("%s", termcommands.ClearLine)
 		// Display logical timestamp alongside physical timestamp
 		switch msg.User.Uuid {
 		case UI.username.Uuid:
-			printMsg(msg, OwnTextColour)
+			printMsg(msg, termcommands.OwnTextColour)
 		case "System":
-			printMsg(msg, ServerTextColour)
+			printMsg(msg, termcommands.ServerTextColour)
 		default:
-			printMsg(msg, OtherTextColour)
+			printMsg(msg, termcommands.OtherTextColour)
 		}
 	}
 }
 
-func printMsg(msg *chitchat.Msg, colour TermComands) {
+func printMsg(msg *chitchat.Msg, colour termcommands.TermComands) {
 	outTime := time.Unix(msg.UnixTime, 0).Format(time.DateTime)
-	fmt.Printf("%s<%s @ %s (L:%d)> %s%s\n", colour, msg.User.Uuid, outTime, msg.LogicalTime, msg.Message, ResetColour)
+	fmt.Printf("%s<%s @ %s (L:%d)> %s%s\n", colour, msg.User.Uuid, outTime, msg.LogicalTime, msg.Message, termcommands.ResetColour)
 }
 
 func (UI *BasicUI) writer() {

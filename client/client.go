@@ -19,15 +19,8 @@ var (
 )
 
 func main() {
-	fmt.Println("Please enter your username:")
-	var username string
-	_, err := fmt.Scanln(&username)
-	if err != nil {
-		log.Fatalf("failed to get username: %v", err)
-	}
-	user := &chitchat.User{
-		Uuid: username,
-	}
+	user := ui.BasicLogin()
+	username := user.Uuid
 	if err := os.MkdirAll(fmt.Sprintf("%s/%s", *dataFolder, username), os.ModePerm); err != nil {
 		log.Fatalf("failed to creat dirr: %v", err)
 	}
