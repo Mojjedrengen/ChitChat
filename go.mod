@@ -3,6 +3,7 @@ module github.com/Mojjedrengen/ChitChat
 go 1.25.2
 
 require (
+	github.com/google/uuid v1.6.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.36.10
 )
