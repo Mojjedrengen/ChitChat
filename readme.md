@@ -31,4 +31,5 @@ The client does not read Windows termination signals, can't figure out why and h
 This means that the server does not get the message that the client is disconnected and so it does not brodcast it.
 To mitigate this run the program on Linux
 
+# Refrences
 used [GRPC.Go.Basic_turtorial](https://grpc.io/docs/languages/go/basics/) as a refrence to create the project
